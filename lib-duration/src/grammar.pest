@@ -1,33 +1,48 @@
+Hours = {
+  "hour" ~ ("s")?
+  | "h" ~ ("r")?
+}
+
+Minutes = {
+  "minute" ~ ("s")?
+  | "m"
+}
+
+Seconds = {
+  "second" ~ ("s")?
+  | "sec" ~ ("s")?
+  | "s"
+}
+
+Duration = {
+  ASCII_DIGIT+
+}
+
+ShortDuration = _{
+  Duration ~ (Hours | Minutes | Seconds)
+}
+
+LongDuration = _{
+  Duration ~ " " ~ (Hours | Minutes | Seconds)
+}
+
+DurationExpr = {
+  ShortDuration | LongDuration
+}
+
 Word = _{
   ASCII_ALPHA+
 }
 
-Hour = {
-  "h"
-}
-
-Minute = {
-  "minute" | "m"
-}
-
-Second = {
-  "seconds" | "s"
-}
-
-Duration = {
-  (ASCII_DIGIT+ ~ (Hour | Minute | Second))
-  | (ASCII_DIGIT+ ~ " " ~ (Hour | Minute | Second))
-}
-
 Expr = _{
-  (Word | Duration)
-  ~ (" " ~ (Word | Duration))*
+  Word | DurationExpr
 }
 
 Input = _{
   SOI
 
   ~ Expr
+  ~ (" " ~ Expr)*
 
   ~ EOI
 }
