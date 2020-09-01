@@ -1,10 +1,12 @@
 Hours = {
   "hour" ~ ("s")?
-  | "h" ~ ("r")?
+  | "hr" ~ ("s")?
+  | "h"
 }
 
 Minutes = {
   "minute" ~ ("s")?
+  | "min" ~ ("s")?
   | "m"
 }
 

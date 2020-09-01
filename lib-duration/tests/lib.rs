@@ -150,6 +150,13 @@ mod long_duration {
             }
 
             #[test]
+            fn hrs() {
+                let input = "7 hrs";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(7, 0, 0));
+            }
+
+            #[test]
             fn h() {
                 let input = "3 h";
                 let actual = duration(input);
@@ -180,6 +187,13 @@ mod long_duration {
                 let input = "9 hr before other text";
                 let actual = duration(input);
                 assert_eq!(actual.unwrap(), Duration::new(9, 0, 0));
+            }
+
+            #[test]
+            fn hrs() {
+                let input = "7 hrs before other text";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(7, 0, 0));
             }
 
             #[test]
@@ -216,6 +230,13 @@ mod long_duration {
             }
 
             #[test]
+            fn hrs() {
+                let input = "you shall spend 7 hrs";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(7, 0, 0));
+            }
+
+            #[test]
             fn h() {
                 let input = "you shall spend 4 h";
                 let actual = duration(input);
@@ -249,6 +270,13 @@ mod long_duration {
             }
 
             #[test]
+            fn hrs() {
+                let input = "you shall spend 7 hrs on this";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(7, 0, 0));
+            }
+
+            #[test]
             fn h() {
                 let input = "you shall spend 4 h on this";
                 let actual = duration(input);
@@ -279,6 +307,20 @@ mod long_duration {
             }
 
             #[test]
+            fn mins() {
+                let input = "33 mins";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 33, 0));
+            }
+
+            #[test]
+            fn min() {
+                let input = "2 min";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 2, 0));
+            }
+
+            #[test]
             fn m() {
                 let input = "3 m";
                 let actual = duration(input);
@@ -302,6 +344,20 @@ mod long_duration {
                 let input = "11 minutes before other text";
                 let actual = duration(input);
                 assert_eq!(actual.unwrap(), Duration::new(0, 11, 0));
+            }
+
+            #[test]
+            fn mins() {
+                let input = "33 mins before other text";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 33, 0));
+            }
+
+            #[test]
+            fn min() {
+                let input = "2 min before other text";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 2, 0));
             }
 
             #[test]
@@ -331,6 +387,20 @@ mod long_duration {
             }
 
             #[test]
+            fn mins() {
+                let input = "you shall spend 33 mins";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 33, 0));
+            }
+
+            #[test]
+            fn min() {
+                let input = "you shall spend 2 min";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 2, 0));
+            }
+
+            #[test]
             fn m() {
                 let input = "you shall spend 4 m";
                 let actual = duration(input);
@@ -354,6 +424,20 @@ mod long_duration {
                 let input = "you shall spend 3 minutes on this";
                 let actual = duration(input);
                 assert_eq!(actual.unwrap(), Duration::new(0, 3, 0));
+            }
+
+            #[test]
+            fn mins() {
+                let input = "you shall spend 33 mins on this";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 33, 0));
+            }
+
+            #[test]
+            fn min() {
+                let input = "you shall spend 2 min on this";
+                let actual = duration(input);
+                assert_eq!(actual.unwrap(), Duration::new(0, 2, 0));
             }
 
             #[test]
