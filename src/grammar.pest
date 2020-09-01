@@ -7,16 +7,16 @@ Hour = {
 }
 
 Minute = {
-  "m"
+  "minute" | "m"
 }
 
 Second = {
-  "s"
+  "seconds" | "s"
 }
 
 Duration = {
-  ASCII_DIGIT+
-  ~ (Hour | Minute | Second)
+  (ASCII_DIGIT+ ~ (Hour | Minute | Second))
+  | (ASCII_DIGIT+ ~ " " ~ (Hour | Minute | Second))
 }
 
 Expr = _{
