@@ -1,0 +1,9 @@
+[package]
+name = "timer"
+version = "0.1.0"
+authors = ["Viktor Kuroljov <viktor@ku.family>"]
+edition = "2018"
+
+[dependencies]
+notify-rust = "4"
+lib-duration = { path = "../lib-duration" }

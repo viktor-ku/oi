@@ -1,10 +1,5 @@
-[package]
-name = "timer"
-version = "0.1.0"
-authors = ["Viktor Kuroljov <viktor@ku.family>"]
-edition = "2018"
-
-[dependencies]
-notify-rust = "4"
-pest = "2.0"
-pest_derive = "2.0"
+[workspace]
+members = [
+  "hey",
+  "lib-duration",
+]

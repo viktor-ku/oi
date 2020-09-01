@@ -1,15 +1,8 @@
-extern crate pest;
-#[macro_use]
-extern crate pest_derive;
-
 use notify_rust::{error::Error, Notification, NotificationHandle};
-use pest::Parser;
 use std::thread;
 use std::time;
 
-#[derive(Parser)]
-#[grammar = "grammar.pest"]
-struct InputParser;
+use lib_duration::duration;
 
 fn notify(message: &str) -> Result<NotificationHandle, Error> {
     Ok(Notification::new()
@@ -27,12 +20,6 @@ fn main() {
         .join(" ");
     let input = input.trim();
 
-    let parsed = InputParser::parse(Rule::Input, input);
-    if parsed.is_err() {
-        let e = parsed.err().unwrap();
-        println!("{}", &e);
-        println!("{:#?}", &e);
-        return;
-    }
+    let parsed = duration(input).expect("failed to parse input");
     println!("{:#?}", parsed);
 }
