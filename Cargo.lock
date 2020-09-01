@@ -202,6 +202,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hey"
+version = "0.1.0"
+dependencies = [
+ "lib-duration",
+ "notify-rust",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -514,14 +522,6 @@ dependencies = [
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi",
-]
-
-[[package]]
-name = "timer"
-version = "0.1.0"
-dependencies = [
- "lib-duration",
- "notify-rust",
 ]
 
 [[package]]
