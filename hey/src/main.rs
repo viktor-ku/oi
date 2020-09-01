@@ -4,9 +4,10 @@ use std::time;
 
 use lib_duration::duration;
 
-fn notify(message: &str) -> Result<NotificationHandle, Error> {
+#[inline]
+fn notify(title: &str, message: &str) -> Result<NotificationHandle, Error> {
     Ok(Notification::new()
-        .summary("timer")
+        .summary(title)
         .body(message)
         .timeout(3_000)
         .show()?)
@@ -20,6 +21,9 @@ fn main() {
         .join(" ");
     let input = input.trim();
 
-    let parsed = duration(input).expect("failed to parse input");
-    println!("{:#?}", parsed);
+    let duration = duration(input).expect("failed to parse input");
+    notify("timer is up", &format!("{}", duration)).unwrap();
+
+    thread::sleep(time::Duration::from_secs(duration.secs()));
+    notify("", input).unwrap();
 }
