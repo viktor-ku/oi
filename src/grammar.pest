@@ -1,0 +1,33 @@
+Word = _{
+  ASCII_ALPHA+
+}
+
+Hour = {
+  "h"
+}
+
+Minute = {
+  "m"
+}
+
+Second = {
+  "s"
+}
+
+Duration = {
+  ASCII_DIGIT+
+  ~ (Hour | Minute | Second)
+}
+
+Expr = _{
+  (Word | Duration)
+  ~ (" " ~ (Word | Duration))*
+}
+
+Input = _{
+  SOI
+
+  ~ Expr
+
+  ~ EOI
+}
