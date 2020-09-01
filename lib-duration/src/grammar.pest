@@ -18,6 +18,7 @@ Seconds = {
 
 Duration = {
   ASCII_DIGIT+
+  ~ ("." ~ ASCII_DIGIT+)?
 }
 
 ShortDuration = _{

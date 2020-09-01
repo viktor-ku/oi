@@ -31,11 +31,13 @@ impl Duration {
 
         for raw_duration in raw {
             match raw_duration {
-                RawDuration::Minutes(minutes) => {
-                    it.minutes += *minutes as u32;
-                }
                 RawDuration::Hours(hours) => {
                     it.hours += *hours as u32;
+                    it.minutes += (hours.fract() * 60.0) as u32;
+                }
+                RawDuration::Minutes(minutes) => {
+                    it.minutes += *minutes as u32;
+                    it.seconds += (minutes.fract() * 60.0) as u32;
                 }
                 RawDuration::Seconds(seconds) => {
                     it.seconds += *seconds as u32;
