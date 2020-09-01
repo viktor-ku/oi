@@ -16,11 +16,20 @@ impl Duration {
         }
     }
 
+    fn fix_overflow(&mut self) {
+        let minutes = self.seconds / 60;
+        self.minutes += minutes;
+        self.seconds -= minutes * 60;
+
+        let hours = self.minutes / 60;
+        self.hours += hours;
+        self.minutes -= hours * 60;
+    }
+
     pub(crate) fn merge(raw: &[RawDuration]) -> Self {
         let mut it = Self::default();
 
         for raw_duration in raw {
-            println!("{:#?}", raw_duration);
             match raw_duration {
                 RawDuration::Minutes(minutes) => {
                     it.minutes += *minutes as u32;
@@ -31,9 +40,10 @@ impl Duration {
                 RawDuration::Seconds(seconds) => {
                     it.seconds += *seconds as u32;
                 }
-                _ => {}
             }
         }
+
+        it.fix_overflow();
 
         it
     }
