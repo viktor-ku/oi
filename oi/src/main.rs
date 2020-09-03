@@ -1,17 +1,8 @@
-use notify_rust::{error::Error, Notification, NotificationHandle};
+use notify_rust::{Notification, Urgency};
 use std::thread;
 use std::time;
 
 use lib_duration::duration;
-
-#[inline]
-fn notify(title: &str, message: &str) -> Result<NotificationHandle, Error> {
-    Ok(Notification::new()
-        .summary(title)
-        .body(message)
-        .timeout(3_000)
-        .show()?)
-}
 
 fn main() {
     let input: String = std::env::args()
@@ -22,8 +13,19 @@ fn main() {
     let input = input.trim();
 
     let duration = duration(input).expect("failed to parse input");
-    notify("timer is up", &format!("{}", duration)).unwrap();
+    Notification::new()
+        .summary("timer is now running")
+        .body(&format!("{}", duration))
+        .timeout(2_500)
+        .show()
+        .unwrap();
 
     thread::sleep(time::Duration::from_secs(duration.secs()));
-    notify("", input).unwrap();
+    Notification::new()
+        .summary("oi")
+        .body(input)
+        .timeout(5_000)
+        .urgency(Urgency::Critical)
+        .show()
+        .unwrap();
 }
