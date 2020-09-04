@@ -15,7 +15,7 @@ fn play(path: &PathBuf) {
     let file = File::open(path).unwrap();
     let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
 
-    sink.set_volume(0.65);
+    sink.set_volume(0.8);
     sink.append(source);
 
     sink.sleep_until_end();
