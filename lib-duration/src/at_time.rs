@@ -1,9 +1,6 @@
+use super::Rule;
 use chrono::{DateTime, Timelike, Utc};
-use pest::Parser;
-
-#[derive(Parser)]
-#[grammar = "at_time.pest"]
-struct AtTimeParser;
+use pest::iterators::Pairs;
 
 #[derive(Debug)]
 pub enum AtTimePart {
@@ -22,28 +19,17 @@ pub struct AtTime<'d> {
 }
 
 impl<'d> AtTime<'d> {
-    pub fn new(now: &'d DateTime<Utc>, text: &str) -> Self {
+    pub fn new(now: &'d DateTime<Utc>, props: Pairs<Rule>) -> Self {
         let mut hours = 0;
         let mut part = None;
 
-        let ast = AtTimeParser::parse(Rule::AtTimeExpr, text).unwrap();
+        println!("at time props {:#?}", props);
 
-        println!("at time parsed {:#?}", ast);
-
-        for expr in ast {
-            match expr.as_rule() {
-                Rule::AtTime => {
-                    let props = expr.into_inner();
-
-                    for prop in props {
-                        match prop.as_rule() {
-                            Rule::Pm => part = Some(AtTimePart::Pm),
-                            Rule::TimeValue => {
-                                hours = prop.as_str().parse().unwrap();
-                            }
-                            _ => {}
-                        }
-                    }
+        for prop in props {
+            match prop.as_rule() {
+                Rule::Pm => part = Some(AtTimePart::Pm),
+                Rule::TimeValue => {
+                    hours = prop.as_str().parse().unwrap();
                 }
                 _ => {}
             }
@@ -71,7 +57,7 @@ impl<'d> AtTime<'d> {
                 },
                 AtTimePart::Am => todo!(),
             },
-            None => self.hours,
+            None => 0,
         }
     }
 }
