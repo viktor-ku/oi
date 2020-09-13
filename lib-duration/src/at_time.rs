@@ -1,5 +1,5 @@
 use super::Rule;
-use chrono::{DateTime, Datelike, Duration, Timelike, Utc, Local};
+use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use pest::iterators::Pairs;
 
 #[derive(Debug)]
@@ -67,7 +67,7 @@ impl AtTime {
         Self { hours, minutes }
     }
 
-    pub fn datetime(&self, based_on: &DateTime<Local>) -> DateTime<Local> {
+    pub fn datetime(&self, based_on: &DateTime<Utc>) -> DateTime<Utc> {
         let mut dt = based_on.clone();
 
         if self.hours == 24 {
@@ -82,7 +82,7 @@ impl AtTime {
         dt
     }
 
-    pub fn diff(&self, another: &DateTime<Local>) -> i64 {
+    pub fn diff(&self, another: &DateTime<Utc>) -> i64 {
         let one = self.datetime(another);
         one.timestamp() - another.timestamp()
     }

@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest_derive;
 
-use chrono::{DateTime, Utc, Local};
+use chrono::{DateTime, Utc};
 use pest::Parser;
 
 #[derive(Parser)]
@@ -20,7 +20,7 @@ use raw_duration::RawDuration;
 mod at_time;
 use at_time::AtTime;
 
-pub fn duration(input: &str, now: &DateTime<Local>) -> Result<Duration, Error> {
+pub fn duration(input: &str, now: &DateTime<Utc>) -> Result<Duration, Error> {
     let raw_durations: Vec<RawDuration> = match InputParser::parse(Rule::Input, input) {
         Ok(parsed) => {
             let mut v = Vec::with_capacity(32);
