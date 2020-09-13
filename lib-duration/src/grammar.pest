@@ -59,6 +59,7 @@ TimePart = _{ Pm | Am }
 
 AtTime = {
   TimeValue
+  ~ " "?
   ~ TimePart
 }
 
