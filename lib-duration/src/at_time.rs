@@ -1,33 +1,33 @@
 use super::Rule;
-use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
+use chrono::{DateTime, Timelike, Utc};
 use pest::iterators::Pairs;
 
 #[derive(Debug)]
-enum Part {
+pub enum AtTimePart {
     Pm,
     Am,
-    None,
 }
 
 #[derive(Debug)]
-pub struct AtTime {
+pub struct AtTime<'d> {
     /// value from `0` to `23`
     hours: u32,
 
-    /// values from `0` to `59`
-    minutes: u32,
+    part: Option<AtTimePart>,
+
+    now: &'d DateTime<Utc>,
 }
 
-impl AtTime {
-    pub fn new(props: Pairs<Rule>) -> Self {
+impl<'d> AtTime<'d> {
+    pub fn new(now: &'d DateTime<Utc>, props: Pairs<Rule>) -> Self {
         let mut hours = 0;
-        let mut minutes = 0;
-        let mut part = Part::None;
+        let mut part = None;
+
+        println!("at time props {:#?}", props);
 
         for prop in props {
             match prop.as_rule() {
-                Rule::Pm => part = Part::Pm,
-                Rule::Am => part = Part::Am,
+                Rule::Pm => part = Some(AtTimePart::Pm),
                 Rule::TimeValue => {
                     hours = prop.as_str().parse().unwrap();
                 }
@@ -35,10 +35,13 @@ impl AtTime {
             }
         }
 
-        match &part {
-            Part::Pm => {
-                hours = match hours {
-                    0 => 12,
+        Self { hours, part, now }
+    }
+
+    fn normalize_hours(&self) -> u32 {
+        match &self.part {
+            Some(part) => match part {
+                AtTimePart::Pm => match self.hours {
                     1 => 13,
                     2 => 14,
                     3 => 15,
@@ -50,40 +53,24 @@ impl AtTime {
                     9 => 21,
                     10 => 22,
                     11 => 23,
-                    12 => 12,
-                    _ => hours,
-                }
-            }
-            Part::Am => {
-                hours = match hours {
-                    12 => 24,
-                    0 => 24,
-                    _ => hours,
-                }
-            }
-            Part::None => {}
-        };
-
-        Self { hours, minutes }
-    }
-
-    pub fn datetime(&self, based_on: &DateTime<Utc>) -> DateTime<Utc> {
-        let mut dt = based_on.clone();
-
-        if self.hours == 24 {
-            dt = dt.checked_add_signed(Duration::days(1)).unwrap();
-            dt = dt.with_hour(0).unwrap();
-        } else {
-            dt = dt.with_hour(self.hours).unwrap();
+                    _ => panic!("illegal hours value"),
+                },
+                AtTimePart::Am => todo!(),
+            },
+            None => 0,
         }
-
-        dt = dt.with_minute(self.minutes).unwrap();
-
-        dt
     }
+}
 
-    pub fn diff(&self, another: &DateTime<Utc>) -> i64 {
-        let one = self.datetime(another);
-        one.timestamp() - another.timestamp()
+impl<'d> Into<DateTime<Utc>> for AtTime<'d> {
+    fn into(self) -> DateTime<Utc> {
+        let mut now = self.now.clone();
+        println!("self {:#?}", self);
+
+        let hours = self.normalize_hours();
+        println!("hours {}", hours);
+        now = now.with_hour(hours).unwrap();
+
+        now
     }
 }

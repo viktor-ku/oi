@@ -28,8 +28,9 @@ pub fn duration(input: &str, now: &DateTime<Utc>) -> Result<Duration, Error> {
             for expr in parsed {
                 match expr.as_rule() {
                     Rule::AtTime => {
-                        let at = AtTime::new(expr.into_inner());
-                        let diff = at.diff(now);
+                        let future: DateTime<Utc> = AtTime::new(now, expr.into_inner()).into();
+                        let diff = future.timestamp() - now.timestamp();
+                        println!("diff is {} secs ({} hours)", diff, diff / 60 / 60);
                         if diff > 0 {
                             v.push(RawDuration::Seconds(diff as f64));
                         }
