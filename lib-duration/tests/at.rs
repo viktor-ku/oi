@@ -3,7 +3,36 @@ use lib_duration::{duration, Duration};
 #[macro_use]
 mod utils;
 
-mod with_seconds {
+mod with_input_minutes {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn at_18_30() {
+        assert_eq!(
+            duration("at 18:30", &time! {18:10-30}),
+            Ok(Duration::new(0, 19, 30))
+        );
+    }
+
+    #[test]
+    fn at_6_30_pm_long() {
+        assert_eq!(
+            duration("at 6:30 pm", &time! {18:10-30}),
+            Ok(Duration::new(0, 19, 30))
+        );
+    }
+
+    #[test]
+    fn at_6_30_pm_short() {
+        assert_eq!(
+            duration("at 6:30pm", &time! {18:10-30}),
+            Ok(Duration::new(0, 19, 30))
+        );
+    }
+}
+
+mod with_time_seconds {
     use super::*;
     use pretty_assertions::assert_eq;
 
