@@ -13,7 +13,10 @@ enum Part {
 
 #[derive(Debug)]
 pub struct AtTime {
+    /// value from `0` to `23`
     hours: u32,
+
+    /// values from `0` to `59`
     minutes: u32,
 }
 
@@ -40,7 +43,7 @@ impl AtTime {
         match &part {
             Part::Pm => {
                 hours = match hours {
-                    0 => 12,
+                    0 | 12 => 12,
                     1 => 13,
                     2 => 14,
                     3 => 15,
