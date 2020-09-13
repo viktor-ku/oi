@@ -308,18 +308,18 @@ mod h12_format {
     }
 
     #[test]
-    fn long_variant_should_work_too() {
-        assert_eq!(
-            duration("at 1 am", &time! {00:39}),
-            Ok(Duration::new(0, 21, 0))
-        );
-    }
-
-    #[test]
     fn at_1am() {
         assert_eq!(
             duration("at 1am", &time! {00:20}),
             Ok(Duration::new(0, 40, 0))
+        );
+    }
+
+    #[test]
+    fn at_1am_long() {
+        assert_eq!(
+            duration("at 1 am", &time! {00:39}),
+            Ok(Duration::new(0, 21, 0))
         );
     }
 
