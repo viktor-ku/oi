@@ -102,6 +102,43 @@ mod h12_format {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    mod uppercase_works {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn at_1am_long() {
+            assert_eq!(
+                duration("at 1 AM", &time! {00:30-10}),
+                Ok(Duration::new(0, 29, 50))
+            );
+        }
+
+        #[test]
+        fn at_1am_short() {
+            assert_eq!(
+                duration("at 1AM", &time! {00:30-10}),
+                Ok(Duration::new(0, 29, 50))
+            );
+        }
+
+        #[test]
+        fn at_1pm_long() {
+            assert_eq!(
+                duration("at 1 PM", &time! {12:20-01}),
+                Ok(Duration::new(0, 39, 59))
+            );
+        }
+
+        #[test]
+        fn at_1pm_short() {
+            assert_eq!(
+                duration("at 1PM", &time! {12:20-01}),
+                Ok(Duration::new(0, 39, 59))
+            );
+        }
+    }
+
     mod weird_cases {
         use super::*;
         use pretty_assertions::assert_eq;
