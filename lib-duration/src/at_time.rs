@@ -1,6 +1,8 @@
 use super::Rule;
-use chrono::{DateTime, Datelike, Duration, Timelike, Utc, Local};
+use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
 use pest::iterators::Pairs;
+
+const DAY_IN_SECS: i64 = 24 * 60 * 60;
 
 #[derive(Debug)]
 enum Part {
@@ -21,7 +23,6 @@ pub struct AtTime {
 impl AtTime {
     pub fn new(props: Pairs<Rule>) -> Self {
         let mut hours = 0;
-        let mut minutes = 0;
         let mut part = Part::None;
 
         for prop in props {
@@ -38,7 +39,7 @@ impl AtTime {
         match &part {
             Part::Pm => {
                 hours = match hours {
-                    0 => 12,
+                    0 | 12 => 12,
                     1 => 13,
                     2 => 14,
                     3 => 15,
@@ -50,21 +51,19 @@ impl AtTime {
                     9 => 21,
                     10 => 22,
                     11 => 23,
-                    12 => 12,
                     _ => hours,
                 }
             }
             Part::Am => {
                 hours = match hours {
-                    12 => 24,
-                    0 => 24,
+                    0 | 12 => 24,
                     _ => hours,
                 }
             }
             Part::None => {}
         };
 
-        Self { hours, minutes }
+        Self { hours, minutes: 0 }
     }
 
     pub fn datetime(&self, based_on: &DateTime<Local>) -> DateTime<Local> {
@@ -82,8 +81,17 @@ impl AtTime {
         dt
     }
 
-    pub fn diff(&self, another: &DateTime<Local>) -> i64 {
+    pub fn diff(&self, another: &DateTime<Local>) -> u64 {
         let one = self.datetime(another);
-        one.timestamp() - another.timestamp()
+        let diff = one.timestamp() - another.timestamp();
+
+        if diff >= 0 {
+            diff as u64
+        } else {
+            // not black magic:
+            // `diff` is negative at this point, meaning that this operation
+            // is effectively `24h - "less than 24h time span (diff)"`
+            (diff + DAY_IN_SECS) as u64
+        }
     }
 }

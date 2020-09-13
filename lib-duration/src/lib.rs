@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest_derive;
 
-use chrono::{DateTime, Utc, Local};
+use chrono::{DateTime, Local, Utc};
 use pest::Parser;
 
 #[derive(Parser)]
@@ -29,10 +29,7 @@ pub fn duration(input: &str, now: &DateTime<Local>) -> Result<Duration, Error> {
                 match expr.as_rule() {
                     Rule::AtTime => {
                         let at = AtTime::new(expr.into_inner());
-                        let diff = at.diff(now);
-                        if diff > 0 {
-                            v.push(RawDuration::Seconds(diff as f64));
-                        }
+                        v.push(RawDuration::Seconds(at.diff(now) as f64));
                     }
                     Rule::DurationExpr => {
                         let mut needle: f64 = 0.0;
