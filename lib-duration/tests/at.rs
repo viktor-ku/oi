@@ -6,13 +6,6 @@ mod with_part {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn long_variant_should_work_too() {
-        let input = "at 0 am";
-        let now = Local.ymd(2020, 9, 30).and_hms(23, 45, 0);
-        assert_eq!(duration(input, &now), Ok(Duration::new(0, 15, 0)));
-    }
-
-    #[test]
     fn at_0am() {
         let input = "at 0am";
         let now = Local.ymd(2020, 9, 30).and_hms(23, 45, 0);
