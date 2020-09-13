@@ -43,18 +43,8 @@ Expr = _{
 
 // At Time
 // ...
-AtHours = {
+TimeValue = {
   ASCII_DIGIT+
-}
-
-AtMinutes = {
-  ASCII_DIGIT+
-}
-
-TimeValue = _{
-  AtHours
-  ~ ":"?
-  ~ AtMinutes?
 }
 
 Pm = {

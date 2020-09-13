@@ -24,17 +24,13 @@ impl AtTime {
     pub fn new(props: Pairs<Rule>) -> Self {
         let mut hours = 0;
         let mut part = Part::None;
-        let mut minutes = 0;
 
         for prop in props {
             match prop.as_rule() {
                 Rule::Pm => part = Part::Pm,
                 Rule::Am => part = Part::Am,
-                Rule::AtHours => {
+                Rule::TimeValue => {
                     hours = prop.as_str().parse().unwrap();
-                }
-                Rule::AtMinutes => {
-                    minutes = prop.as_str().parse().unwrap();
                 }
                 _ => {}
             }
@@ -67,7 +63,7 @@ impl AtTime {
             Part::None => {}
         };
 
-        Self { hours, minutes }
+        Self { hours, minutes: 0 }
     }
 
     pub fn datetime(&self, based_on: &DateTime<Local>) -> DateTime<Local> {
