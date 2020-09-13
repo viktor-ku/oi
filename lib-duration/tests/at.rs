@@ -53,6 +53,14 @@ mod with_input_minutes {
     }
 
     #[test]
+    fn at_4_15_am() {
+        assert_eq!(
+            duration("at 4:15am", &time! {16:15}),
+            Ok(Duration::new(12, 0, 0))
+        );
+    }
+
+    #[test]
     fn at_6_30_pm_long() {
         assert_eq!(
             duration("at 6:30 pm", &time! {18:10-30}),
