@@ -60,7 +60,7 @@ TimePart = _{ Pm | Am }
 AtTime = {
   TimeValue
   ~ " "?
-  ~ TimePart?
+  ~ TimePart
 }
 
 AtTimeExpr = _{
