@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest_derive;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Utc};
 use pest::Parser;
 
 #[derive(Parser)]
