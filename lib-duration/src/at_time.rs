@@ -1,5 +1,5 @@
 use super::Rule;
-use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
+use chrono::{DateTime, Duration, Local, Timelike};
 use pest::iterators::Pairs;
 
 const DAY_IN_SECS: i64 = 24 * 60 * 60;
