@@ -1,2 +1,2 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Error {}

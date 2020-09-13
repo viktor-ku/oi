@@ -1,0 +1,22 @@
+TimeValue = {
+  ASCII_DIGIT+
+}
+
+Pm = {
+  "pm"
+}
+
+TimePart = _{
+  Pm
+}
+
+AtTime = {
+  TimeValue
+  ~ TimePart
+}
+
+AtTimeExpr = _{
+  "at"
+  ~ " "
+  ~ AtTime
+}

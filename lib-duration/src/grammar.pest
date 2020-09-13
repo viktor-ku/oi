@@ -37,35 +37,15 @@ Word = _{
   ASCII_ALPHA+
 }
 
-Expr = _{
-  AtTimeExpr | Word | DurationExpr
-}
-
-// At Time
-// ...
-TimeValue = {
-  ASCII_DIGIT+
-}
-
-Pm = {
-  "pm"
-}
-
-Am = {
-  "am"
-}
-
-TimePart = _{ Pm | Am }
-
-AtTime = {
-  TimeValue
-  ~ TimePart
-}
-
-AtTimeExpr = _{
+AtTimeExpr = {
   "at"
   ~ " "
-  ~ AtTime
+  ~ ASCII_DIGIT+
+  ~ "pm"
+}
+
+Expr = _{
+  AtTimeExpr | Word | DurationExpr
 }
 
 Input = _{
