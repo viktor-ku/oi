@@ -3,43 +3,6 @@ use lib_duration::{duration, Duration};
 #[macro_use]
 mod utils;
 
-mod weird_cases {
-    use super::*;
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn at_13am() {
-        assert_eq!(
-            duration("at 13am", &time! {10:00}),
-            Ok(Duration::new(3, 0, 0))
-        );
-    }
-
-    #[test]
-    fn at_13pm() {
-        assert_eq!(
-            duration("at 13pm", &time! {10:00}),
-            Ok(Duration::new(3, 0, 0))
-        );
-    }
-
-    #[test]
-    fn at_24am() {
-        assert_eq!(
-            duration("at 24am", &time! {22:00}),
-            Ok(Duration::new(2, 0, 0))
-        );
-    }
-
-    #[test]
-    fn at_24pm() {
-        assert_eq!(
-            duration("at 24pm", &time! {22:00}),
-            Ok(Duration::new(2, 0, 0))
-        );
-    }
-}
-
 mod h12_format {
     use super::*;
     use pretty_assertions::assert_eq;
