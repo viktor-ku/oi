@@ -57,13 +57,20 @@ TimeValue = _{
   ~ AtMinutes?
 }
 
-Pm = { "PM" | "pm" }
-Am = { "AM" | "am" }
+Pm = {
+  "pm"
+}
+
+Am = {
+  "am"
+}
+
+TimePart = _{ Pm | Am }
 
 AtTime = {
   TimeValue
   ~ " "?
-  ~ (Am | Pm)?
+  ~ TimePart?
 }
 
 AtTimeExpr = _{
