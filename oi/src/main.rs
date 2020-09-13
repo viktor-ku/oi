@@ -1,4 +1,3 @@
-use chrono::Local;
 use notify_rust::{Notification, Urgency};
 use std::fs::File;
 use std::io::BufReader;
@@ -30,8 +29,7 @@ fn main() {
         .join(" ");
     let input = input.trim();
 
-    let now = Local::now();
-    let duration = duration(input, &now).expect("failed to parse input");
+    let duration = duration(input).expect("failed to parse input");
     Notification::new()
         .summary("timer is now running")
         .body(&format!("{}", duration))
