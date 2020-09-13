@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate pest_derive;
 
+use chrono::{DateTime, Local};
 use pest::Parser;
 
 #[derive(Parser)]
@@ -16,13 +17,20 @@ use error::Error;
 mod raw_duration;
 use raw_duration::RawDuration;
 
-pub fn duration(input: &str) -> Result<Duration, Error> {
+mod at_time;
+use at_time::AtTime;
+
+pub fn duration(input: &str, now: &DateTime<Local>) -> Result<Duration, Error> {
     let raw_durations: Vec<RawDuration> = match InputParser::parse(Rule::Input, input) {
         Ok(parsed) => {
             let mut v = Vec::with_capacity(32);
 
             for expr in parsed {
                 match expr.as_rule() {
+                    Rule::AtTime => {
+                        let at = AtTime::new(expr.into_inner());
+                        v.push(RawDuration::Seconds(at.diff(now) as f64));
+                    }
                     Rule::DurationExpr => {
                         let mut needle: f64 = 0.0;
 
@@ -46,7 +54,10 @@ pub fn duration(input: &str) -> Result<Duration, Error> {
 
             v
         }
-        Err(e) => return Err(Error {}),
+        Err(e) => {
+            println!("err {}", e);
+            return Err(Error {});
+        }
     };
 
     Ok(Duration::merge(&raw_durations))
