@@ -57,11 +57,16 @@ impl AtTime {
             }
             Part::Am => {
                 hours = match hours {
-                    0 | 12 => 24,
+                    12 => 0,
                     _ => hours,
                 }
             }
-            Part::None => {}
+            Part::None => {
+                hours = match hours {
+                    24 => 0,
+                    _ => hours,
+                }
+            }
         };
 
         Self { hours, minutes }

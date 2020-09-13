@@ -3,6 +3,43 @@ use lib_duration::{duration, Duration};
 #[macro_use]
 mod utils;
 
+mod midnight_business {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn at_0_45_am() {
+        assert_eq!(
+            duration("at 0:45 am", &time! {00:30-50}),
+            Ok(Duration::new(0, 14, 10))
+        );
+    }
+
+    #[test]
+    fn at_12_45_am() {
+        assert_eq!(
+            duration("at 12:45am", &time! {00:30-50}),
+            Ok(Duration::new(0, 14, 10))
+        );
+    }
+
+    #[test]
+    fn at_0_45() {
+        assert_eq!(
+            duration("at 0:45", &time! {00:30-50}),
+            Ok(Duration::new(0, 14, 10))
+        );
+    }
+
+    #[test]
+    fn at_24_45() {
+        assert_eq!(
+            duration("at 24:45", &time! {00:30-50}),
+            Ok(Duration::new(0, 14, 10))
+        );
+    }
+}
+
 mod with_input_minutes {
     use super::*;
     use pretty_assertions::assert_eq;
