@@ -77,7 +77,6 @@ impl AtTime {
         }
 
         dt = dt.with_minute(self.minutes).unwrap();
-        dt = dt.with_second(0).unwrap();
 
         dt
     }
