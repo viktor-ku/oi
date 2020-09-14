@@ -1,13 +1,19 @@
 use chrono::Local;
+use lib_duration::duration;
 use notify_rust::{Notification, Urgency};
-use std::path::PathBuf;
 use std::thread;
 use std::time;
 
-use lib_duration::duration;
+mod config;
+use config::Config;
 
 mod player;
 use player::Player;
+
+pub mod on_timeout;
+
+mod norm_path;
+pub use norm_path::norm_path;
 
 fn main() {
     let input: String = std::env::args()
@@ -27,6 +33,7 @@ fn main() {
         .unwrap();
 
     thread::sleep(time::Duration::from_secs(duration.secs()));
+
     Notification::new()
         .summary("oi")
         .body(input)
@@ -35,11 +42,12 @@ fn main() {
         .show()
         .unwrap();
 
-    let player = Player::new(0.8);
+    let config = Config::new();
 
-    player.play(
-        &PathBuf::from("/home/viktor/Music/notification.wav")
-            .canonicalize()
-            .unwrap(),
-    );
+    if let Some(sound_path) = &config.on_timeout.play {
+        if sound_path.is_file() {
+            let player = Player::new(config.volume());
+            player.play(&sound_path);
+        }
+    }
 }
