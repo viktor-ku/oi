@@ -1,26 +1,13 @@
 use chrono::Local;
 use notify_rust::{Notification, Urgency};
-use std::fs::File;
-use std::io::BufReader;
 use std::path::PathBuf;
 use std::thread;
 use std::time;
 
 use lib_duration::duration;
 
-fn play(path: &PathBuf) {
-    let device = rodio::default_output_device().unwrap();
-
-    let sink = rodio::Sink::new(&device);
-
-    let file = File::open(path).unwrap();
-    let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-
-    sink.set_volume(0.8);
-    sink.append(source);
-
-    sink.sleep_until_end();
-}
+mod player;
+use player::Player;
 
 fn main() {
     let input: String = std::env::args()
@@ -48,7 +35,9 @@ fn main() {
         .show()
         .unwrap();
 
-    play(
+    let player = Player::new(0.8);
+
+    player.play(
         &PathBuf::from("/home/viktor/Music/notification.wav")
             .canonicalize()
             .unwrap(),
