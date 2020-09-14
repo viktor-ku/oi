@@ -9,8 +9,21 @@ pub struct OnTimeout {
 
 impl OnTimeout {
     #[inline]
-    fn default_play() -> PathBuf {
-        PathBuf::from("/usr/share/oi/notification.wav")
+    #[cfg(target_os = "linux")]
+    fn default_play() -> Option<PathBuf> {
+        Some(PathBuf::from("/usr/share/oi/notification.wav"))
+    }
+
+    #[inline]
+    #[cfg(not(target_os = "linux"))]
+    fn default_play() -> Option<PathBuf> {
+        // Default sound notification is disabled for non-linux platforms,
+        // because I do not know which path what would be a good
+        // alternative for `/usr/share/` for other platforms.
+        //
+        // Please, open the PR with correct `/usr/share/` alternative
+        // implementation for the platform of your choice. Thank you!
+        None
     }
 
     pub fn new(value: &Value) -> Self {
@@ -45,7 +58,7 @@ impl OnTimeout {
 impl Default for OnTimeout {
     fn default() -> Self {
         Self {
-            play: Some(Self::default_play()),
+            play: Self::default_play(),
         }
     }
 }
