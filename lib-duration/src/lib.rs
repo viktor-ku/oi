@@ -39,10 +39,8 @@ pub fn duration(input: &str, now: &DateTime<Local>) -> Result<Duration, Error> {
                                 Rule::Duration => {
                                     needle = prop.as_str().parse().unwrap();
                                 }
-                                Rule::Minutes => {
-                                    v.push(RawDuration::Minutes(needle));
-                                }
                                 Rule::Hours => v.push(RawDuration::Hours(needle)),
+                                Rule::Minutes => v.push(RawDuration::Minutes(needle)),
                                 Rule::Seconds => v.push(RawDuration::Seconds(needle)),
                                 _ => {}
                             }

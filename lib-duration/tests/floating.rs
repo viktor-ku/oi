@@ -66,8 +66,8 @@ mod hours {
 
     #[test]
     fn a02() {
-        let input = "0.495101 hours";
+        let input = "0.49 hours";
         let actual = duration(input, &Local::now());
-        assert_eq!(actual.unwrap(), Duration::new(0, 29, 0));
+        assert_eq!(actual.unwrap(), Duration::new(0, 29, 24));
     }
 }

@@ -1,7 +1,7 @@
 use crate::RawDuration;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Duration {
     pub hours: u64,
     pub minutes: u64,
@@ -21,38 +21,40 @@ impl Duration {
         self.seconds + (self.minutes * 60) + (self.hours * 3600)
     }
 
-    fn fix_overflow(&mut self) {
-        let minutes = self.seconds / 60;
-        self.minutes += minutes;
-        self.seconds -= minutes * 60;
+    fn from_seconds(total_seconds: i64) -> Self {
+        if total_seconds < 0 {
+            return Self::default();
+        }
 
-        let hours = self.minutes / 60;
-        self.hours += hours;
-        self.minutes -= hours * 60;
+        let mut seconds = total_seconds as u64;
+
+        let hours = seconds / 3600;
+        seconds -= hours * 3600;
+
+        let minutes = seconds / 60;
+        seconds -= minutes * 60;
+
+        Self::new(hours, minutes, seconds)
     }
 
     pub(crate) fn merge(raw: &[RawDuration]) -> Self {
-        let mut it = Self::default();
+        let mut total_secs = 0;
 
         for raw_duration in raw {
             match raw_duration {
                 RawDuration::Hours(hours) => {
-                    it.hours += *hours as u64;
-                    it.minutes += (hours.fract() * 60.0) as u64;
+                    total_secs += (*hours * 3600.0) as i64;
                 }
                 RawDuration::Minutes(minutes) => {
-                    it.minutes += *minutes as u64;
-                    it.seconds += (minutes.fract() * 60.0) as u64;
+                    total_secs += (*minutes * 60.0) as i64;
                 }
                 RawDuration::Seconds(seconds) => {
-                    it.seconds += *seconds as u64;
+                    total_secs += *seconds as i64;
                 }
             }
         }
 
-        it.fix_overflow();
-
-        it
+        Self::from_seconds(total_secs)
     }
 }
 

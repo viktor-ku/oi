@@ -7,7 +7,7 @@ assets:
 build:
 	cargo build --release
 
-install: assets build
+install: build assets
 	sudo cp -f target/release/oi /usr/local/bin
 
 .PHONY: assets

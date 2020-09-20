@@ -10,3 +10,10 @@ macro_rules! time {
         Local.ymd(2020, 9, 30).and_hms($h, $m, 0)
     }};
 }
+
+#[macro_export]
+macro_rules! now {
+    () => {
+        &chrono::Local::now()
+    };
+}

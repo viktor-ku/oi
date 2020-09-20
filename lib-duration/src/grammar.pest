@@ -17,7 +17,8 @@ Seconds = {
 }
 
 Duration = {
-  ASCII_DIGIT*
+  "-"?
+  ~ ASCII_DIGIT*
   ~ ("." ~ ASCII_DIGIT*)?
 }
 
@@ -62,8 +63,7 @@ Am = { "AM" | "am" }
 
 AtTime = {
   TimeValue
-  ~ " "?
-  ~ (Am | Pm)?
+  ~ (" "? ~ (Am | Pm))?
 }
 
 AtTimeExpr = _{
