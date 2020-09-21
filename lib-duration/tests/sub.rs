@@ -89,14 +89,13 @@ fn sub_hours_from_exact_time() {
 fn sub_trio_from_exact_time() {
     assert_eq!(
         duration(
-            &[
-                "event was planned to begin at 6pm",
-                "but they moved it 1 hour and 30 minutes further",
-                "I need exactly -2 hours -25 minutes to get there",
-                "and additional -300 seconds to get to the classroom",
-                "reserve another -.5h to spare while on my way"
-            ]
-            .join(" "),
+            r###"
+                event was planned to begin at 6pm
+                but they moved it 1 hour and 30 minutes further
+                I need exactly -2 hours -25 minutes to get there
+                and additional -300 seconds to get to the classroom
+                reserve another -.5h to spare while on my way
+            "###,
             &time! {14:00}
         ),
         Ok(Duration::new(2, 30, 0))

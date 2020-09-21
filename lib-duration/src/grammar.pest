@@ -1,18 +1,18 @@
 Hours = {
-  "hour" ~ ("s")?
-  | "hr" ~ ("s")?
+  "hour" ~ "s"?
+  | "hr" ~ "s"?
   | "h"
 }
 
 Minutes = {
-  "minute" ~ ("s")?
-  | "min" ~ ("s")?
+  "minute" ~ "s"?
+  | "min" ~ "s"?
   | "m"
 }
 
 Seconds = {
-  "second" ~ ("s")?
-  | "sec" ~ ("s")?
+  "second" ~ "s"?
+  | "sec" ~ "s"?
   | "s"
 }
 
@@ -22,16 +22,10 @@ Duration = {
   ~ ("." ~ ASCII_DIGIT*)?
 }
 
-ShortDuration = _{
-  Duration ~ (Hours | Minutes | Seconds)
-}
-
-LongDuration = _{
-  Duration ~ " " ~ (Hours | Minutes | Seconds)
-}
-
 DurationExpr = {
-  ShortDuration | LongDuration
+  Duration
+  ~ WHITE_SPACE*
+  ~ (Hours | Minutes | Seconds)
 }
 
 Word = _{
@@ -39,7 +33,9 @@ Word = _{
 }
 
 Expr = _{
-  AtTimeExpr | Word | DurationExpr
+  WHITE_SPACE*
+  ~ (AtTimeExpr | Word | DurationExpr)
+  ~ WHITE_SPACE*
 }
 
 // At Time
@@ -63,20 +59,13 @@ Am = { "AM" | "am" }
 
 AtTime = {
   TimeValue
-  ~ (" "? ~ (Am | Pm))?
+  ~ (WHITE_SPACE* ~ (Am | Pm))?
 }
 
 AtTimeExpr = _{
   "at"
-  ~ " "
+  ~ WHITE_SPACE+
   ~ AtTime
 }
 
-Input = _{
-  SOI
-
-  ~ Expr
-  ~ (" " ~ Expr)*
-
-  ~ EOI
-}
+Input = _{ SOI ~ Expr* ~ EOI }
