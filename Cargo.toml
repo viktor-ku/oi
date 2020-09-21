@@ -1,5 +1,5 @@
 [workspace]
 members = [
-  "oi",
+  "oi-cli",
   "lib-duration",
 ]
