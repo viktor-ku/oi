@@ -5,4 +5,5 @@ members = [
 
   "lib-duration",
   "lib-player",
+  "lib-store",
 ]

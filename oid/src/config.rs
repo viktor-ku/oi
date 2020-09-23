@@ -18,7 +18,7 @@ impl Config {
         self.volume as f32
     }
 
-    fn config_dir() -> Option<PathBuf> {
+    pub fn config_dir() -> Option<PathBuf> {
         match ProjectDirs::from("com", "oi", "oi") {
             Some(dirs) => Some(dirs.config_dir().to_path_buf()),
             None => None,

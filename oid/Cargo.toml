@@ -13,3 +13,4 @@ directories = "3.0"
 serde_yaml = "0.8"
 
 lib-player = { path = "../lib-player" }
+lib-store = { path = "../lib-store" }

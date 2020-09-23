@@ -1,5 +1,6 @@
 use actix_web::{post, web, App, HttpServer};
 use lib_player::Player;
+use lib_store::Store;
 use notify_rust::{Notification, Urgency};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -31,8 +32,18 @@ struct Timer {
 #[post("/timer")]
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
+    store: web::Data<Store>,
     payload: web::Json<Timer>,
 ) -> String {
+    let id = store
+        .records
+        .create(lib_store::CreateRecord {
+            start: payload.start,
+            message: payload.message.clone(),
+            duration: payload.duration,
+        })
+        .await;
+
     tx.lock()
         .unwrap()
         .send(ChannelMessage {
@@ -41,7 +52,8 @@ async fn create_timer(
         })
         .await
         .unwrap();
-    String::from("yo")
+
+    id.to_hyphenated().to_string()
 }
 
 async fn run_timer(duration: u64, timer: String) {
@@ -75,6 +87,8 @@ async fn run_timer(duration: u64, timer: String) {
 async fn main() -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
 
+    let store = Store::new(Config::config_dir().unwrap()).await;
+
     spawn(async move {
         println!("Listening for new sleeping requests :)");
 
@@ -85,11 +99,23 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
+    let active_records = store.records.find_active().await;
+    for record in active_records {
+        tx.clone()
+            .send(ChannelMessage {
+                duration: record.remaining,
+                timer: record.message.clone(),
+            })
+            .await
+            .unwrap();
+    }
+
     println!("Server is up and running, ready for accepting stuff!");
 
     HttpServer::new(move || {
         App::new()
             .data(Mutex::new(tx.clone()))
+            .data(store.clone())
             .service(create_timer)
     })
     .bind("127.0.0.1:8080")?

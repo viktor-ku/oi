@@ -1,0 +1,12 @@
+[package]
+name = "lib-store"
+version = "0.1.0"
+authors = ["Viktor Kuroljov <viktor@ku.family>"]
+edition = "2018"
+
+[dependencies]
+tokio = { version = "0.2", features = ["fs"] }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+toml = "0.5"
+serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4"
