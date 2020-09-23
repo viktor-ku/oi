@@ -1,5 +1,5 @@
 use crate::RawDuration;
-use std::fmt;
+
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Duration {
@@ -56,11 +56,9 @@ impl Duration {
 
         Self::from_seconds(total_secs)
     }
-}
 
-impl fmt::Display for Duration {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}h {}m {}s", self.hours, self.minutes, self.seconds)
+    pub fn format(&self) -> String {
+        format!("{}h {}m {}s", self.hours, self.minutes, self.seconds)
     }
 }
 

@@ -1,9 +1,7 @@
-use super::{Config, Player};
 use chrono::Local;
 use lib_duration::duration;
-use notify_rust::{Notification, Urgency};
-use std::thread;
-use std::time;
+use notify_rust::Notification;
+use serde::Serialize;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -18,6 +16,13 @@ pub enum Cli {
     Run(RunProps),
 }
 
+#[derive(Debug, Serialize)]
+struct Body {
+    start: i64,
+    duration: u64,
+    message: String,
+}
+
 impl Cli {
     #[inline]
     pub fn exec(&self) {
@@ -28,31 +33,33 @@ impl Cli {
 
     fn run(&self, props: &RunProps) {
         let now = Local::now();
-        let timer = &props.timer;
-        let duration = duration(timer, &now).expect("failed to parse input");
-        Notification::new()
-            .summary("timer is now running")
-            .body(&format!("{}", duration))
-            .timeout(2_500)
-            .show()
-            .unwrap();
+        let input = &props.timer;
+        let duration = duration(input, &now).expect("failed to parse input");
 
-        thread::sleep(time::Duration::from_secs(duration.secs()));
+        let client = reqwest::blocking::Client::new();
+        let response = client
+            .post("http://localhost:8080/timer")
+            .json(&Body {
+                start: now.timestamp_millis(),
+                duration: duration.secs(),
+                message: input.to_owned(),
+            })
+            .send();
 
-        Notification::new()
-            .summary("oi")
-            .body(timer)
-            .timeout(10_000)
-            .urgency(Urgency::Critical)
-            .show()
-            .unwrap();
-
-        let config = Config::new();
-
-        if let Some(sound_path) = &config.on_timeout.play {
-            if sound_path.is_file() {
-                let player = Player::new(config.volume());
-                player.play(&sound_path);
+        match response {
+            Ok(response) => {
+                if response.status().is_success() {
+                    Notification::new()
+                        .summary("timer is now running")
+                        .body(&duration.format())
+                        .timeout(2_500)
+                        .show()
+                        .unwrap();
+                }
+            }
+            Err(e) => {
+                eprintln!("Could not connect to a server");
+                eprintln!("{}", e);
             }
         }
     }

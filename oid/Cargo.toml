@@ -1,0 +1,14 @@
+[package]
+name = "oid"
+version = "0.1.0"
+authors = ["Viktor Kuroljov <viktor@ku.family>"]
+edition = "2018"
+
+[dependencies]
+actix-web = "3.0"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "0.2", features = ["rt-core"] }
+notify-rust = "4"
+rodio = "0.11"
+directories = "3.0"
+serde_yaml = "0.8"
