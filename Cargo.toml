@@ -1,6 +1,8 @@
 [workspace]
 members = [
   "oi-cli",
+  "oid",
+
   "lib-duration",
-  "oid"
+  "lib-player",
 ]

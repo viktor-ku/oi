@@ -1,13 +1,11 @@
 use actix_web::{post, web, App, HttpServer};
+use lib_player::Player;
 use notify_rust::{Notification, Urgency};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
-
-mod player;
-use player::Player;
 
 mod config;
 use config::Config;

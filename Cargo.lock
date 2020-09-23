@@ -1283,6 +1283,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lib-player"
+version = "0.1.0"
+dependencies = [
+ "rodio",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1622,8 +1629,8 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "directories",
+ "lib-player",
  "notify-rust",
- "rodio",
  "serde",
  "serde_yaml",
  "tokio",

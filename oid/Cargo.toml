@@ -9,6 +9,7 @@ actix-web = "3.0"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "0.2", features = ["rt-core"] }
 notify-rust = "4"
-rodio = "0.11"
 directories = "3.0"
 serde_yaml = "0.8"
+
+lib-player = { path = "../lib-player" }
