@@ -1,6 +1,5 @@
 use crate::RawDuration;
 
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Duration {
     pub hours: u64,
@@ -17,8 +16,9 @@ impl Duration {
         }
     }
 
-    pub fn secs(&self) -> u64 {
-        self.seconds + (self.minutes * 60) + (self.hours * 3600)
+    /// Computes total number of milliseconds represented by this `Duration`
+    pub fn total(&self) -> u64 {
+        (self.seconds + (self.minutes * 60) + (self.hours * 3600)) * 1000
     }
 
     fn from_seconds(total_seconds: i64) -> Self {

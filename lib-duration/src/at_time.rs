@@ -72,7 +72,7 @@ impl AtTime {
         Self { hours, minutes }
     }
 
-    pub fn datetime(&self, based_on: &DateTime<Local>) -> DateTime<Local> {
+    fn datetime(&self, based_on: &DateTime<Local>) -> DateTime<Local> {
         let mut dt = based_on.clone();
 
         if self.hours == 24 {

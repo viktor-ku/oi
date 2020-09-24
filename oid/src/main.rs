@@ -57,8 +57,8 @@ async fn create_timer(
 }
 
 async fn run_timer(duration: u64, timer: String) {
-    println!("gotta sleep for {} secs now, bye...", duration);
-    time::delay_for(Duration::from_secs(duration)).await;
+    println!("gotta sleep for {} secs now, bye...", duration / 1_000);
+    time::delay_for(Duration::from_millis(duration)).await;
     println!("opacha! time to wake up!");
 
     spawn_blocking(move || {

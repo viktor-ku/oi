@@ -41,7 +41,7 @@ impl Cli {
             .post("http://localhost:8080/timer")
             .json(&Body {
                 start: now.timestamp_millis(),
-                duration: duration.secs(),
+                duration: duration.total(),
                 message: input.to_owned(),
             })
             .send();

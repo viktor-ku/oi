@@ -37,7 +37,7 @@ pub struct Entry {
 
 impl Entry {
     pub fn end(&self) -> u64 {
-        (self.start as u64) + self.duration * 1000
+        (self.start as u64) + self.duration
     }
 }
 
@@ -70,7 +70,7 @@ impl RecordsStore {
             if entry.end() > now {
                 v.push(Record {
                     message: entry.message.clone(),
-                    remaining: (entry.end() - now) / 1000,
+                    remaining: (entry.end() - now),
                 });
             }
 
