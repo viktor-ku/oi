@@ -1273,6 +1273,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "lib-api"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "lib-duration"
 version = "0.1.0"
 dependencies = [
@@ -1627,11 +1635,11 @@ name = "oi"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "lib-api",
  "lib-duration",
  "notify-rust",
- "reqwest",
- "serde",
  "structopt",
+ "tokio",
 ]
 
 [[package]]
@@ -1640,6 +1648,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "directories",
+ "lib-api",
  "lib-player",
  "lib-store",
  "notify-rust",
@@ -2558,11 +2567,22 @@ dependencies = [
  "memchr",
  "mio",
  "mio-uds",
- "num_cpus",
  "pin-project-lite",
  "signal-hook-registry",
  "slab",
+ "tokio-macros",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0c3acc6aa564495a0f2e1d59fab677cd7f81a19994cfc7f3ad0e64301560389"
+dependencies = [
+ "proc-macro2",
+ "quote 1.0.7",
+ "syn 1.0.40",
 ]
 
 [[package]]

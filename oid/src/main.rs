@@ -1,8 +1,8 @@
 use actix_web::{post, web, App, HttpServer};
+use lib_api as api;
 use lib_player::Player;
 use lib_store::Store;
 use notify_rust::{Notification, Urgency};
-use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
@@ -22,18 +22,11 @@ struct ChannelMessage {
     timer: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Timer {
-    start: i64,
-    duration: u64,
-    message: String,
-}
-
 #[post("/timer")]
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
     store: web::Data<Store>,
-    payload: web::Json<Timer>,
+    payload: web::Json<api::CreateTimer>,
 ) -> String {
     let id = store
         .records

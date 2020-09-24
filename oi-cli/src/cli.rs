@@ -1,7 +1,7 @@
 use chrono::Local;
+use lib_api::{self as api, Client};
 use lib_duration::duration;
 use notify_rust::Notification;
-use serde::Serialize;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -16,37 +16,32 @@ pub enum Cli {
     Run(RunProps),
 }
 
-#[derive(Debug, Serialize)]
-struct Body {
-    start: i64,
-    duration: u64,
-    message: String,
-}
-
 impl Cli {
     #[inline]
-    pub fn exec(&self) {
+    pub async fn exec(&self) {
         match self {
-            Cli::Run(props) => self.run(props),
-        }
+            Cli::Run(props) => {
+                self.run(props).await;
+            }
+        };
     }
 
-    fn run(&self, props: &RunProps) {
+    async fn run(&self, props: &RunProps) {
         let now = Local::now();
         let input = &props.timer;
         let duration = duration(input, &now).expect("failed to parse input");
 
-        let client = reqwest::blocking::Client::new();
-        let response = client
-            .post("http://localhost:8080/timer")
-            .json(&Body {
+        let client = Client::new("http://localhost:8080");
+
+        match client
+            .timers
+            .create(&api::CreateTimer {
                 start: now.timestamp_millis(),
                 duration: duration.total(),
                 message: input.to_owned(),
             })
-            .send();
-
-        match response {
+            .await
+        {
             Ok(response) => {
                 if response.status().is_success() {
                     Notification::new()

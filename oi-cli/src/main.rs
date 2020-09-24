@@ -3,7 +3,8 @@ use structopt::StructOpt;
 mod cli;
 use cli::Cli;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::from_args();
-    cli.exec();
+    cli.exec().await;
 }
