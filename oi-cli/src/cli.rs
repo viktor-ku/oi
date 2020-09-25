@@ -1,5 +1,6 @@
 use chrono::Local;
 use lib_api::{self as api, Client};
+use lib_config::Config;
 use lib_duration::duration;
 use notify_rust::Notification;
 use structopt::StructOpt;
@@ -31,7 +32,9 @@ impl Cli {
         let input = &props.timer;
         let duration = duration(input, &now).expect("failed to parse input");
 
-        let client = Client::new("http://localhost:8080");
+        let config = Config::new();
+        let bind = format!("http://localhost:{}", config.port);
+        let client = Client::new(&bind);
 
         match client
             .timers

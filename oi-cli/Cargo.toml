@@ -18,3 +18,6 @@ path = "../lib-duration"
 
 [dependencies.lib-api]
 path = "../lib-api"
+
+[dependencies.lib-config]
+path = "../lib-config"

@@ -127,7 +127,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .unwrap();
     }
 
-    let bind = format!("localhost:{}", cli.port);
+    let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
     println!("Server is up and running at: http://{}", bind);
 
     HttpServer::new(move || {

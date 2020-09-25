@@ -11,12 +11,14 @@ use norm_path::norm_path;
 
 #[derive(Debug)]
 pub struct Config {
+    pub port: u32,
     pub volume: f32,
     pub on_timeout: OnTimeout,
 }
 
 impl Config {
-    pub const DEFAULT_VOLUME: f32 = 0.8;
+    const DEFAULT_VOLUME: f32 = 0.8;
+    const DEFAULT_PORT: u32 = 9191;
 
     pub fn config_dir() -> Option<PathBuf> {
         match ProjectDirs::from("com", "oi", "oi") {
@@ -45,11 +47,28 @@ impl Config {
     fn parse_volume(value: &Value) -> f32 {
         let num = value.get("volume").unwrap();
         match num {
-            serde_yaml::Value::Number(n) => match n.as_f64() {
+            Value::Number(n) => match n.as_f64() {
                 Some(n) => n as f32,
                 None => Self::DEFAULT_VOLUME,
             },
             _ => Self::DEFAULT_VOLUME,
+        }
+    }
+
+    fn parse_port(value: &Value) -> u32 {
+        match value.get("port") {
+            Some(val) => match val {
+                Value::Number(n) => match n.as_u64() {
+                    Some(n) => n as u32,
+                    None => Self::DEFAULT_PORT,
+                },
+                Value::String(val) => match val.parse() {
+                    Ok(val) => val,
+                    Err(_) => Self::DEFAULT_PORT,
+                },
+                _ => Self::DEFAULT_PORT,
+            },
+            None => Self::DEFAULT_PORT,
         }
     }
 
@@ -59,10 +78,11 @@ impl Config {
                 let rd = File::open(path).unwrap();
                 let value: serde_yaml::Value = serde_yaml::from_reader(rd).unwrap();
 
-                let volume = Self::parse_volume(&value);
-                let on_timeout = OnTimeout::new(&value);
-
-                Self { volume, on_timeout }
+                Self {
+                    on_timeout: OnTimeout::new(&value),
+                    volume: Self::parse_volume(&value),
+                    port: Self::parse_port(&value),
+                }
             }
             None => Self::default(),
         }
@@ -74,6 +94,7 @@ impl Default for Config {
         Self {
             volume: Self::DEFAULT_VOLUME,
             on_timeout: OnTimeout::default(),
+            port: Self::DEFAULT_PORT,
         }
     }
 }
