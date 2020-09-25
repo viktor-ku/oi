@@ -9,5 +9,6 @@ build:
 
 install: assets build
 	sudo cp -f target/release/oi /usr/local/bin
+	sudo cp -f target/release/oid /usr/local/bin
 
 .PHONY: assets
