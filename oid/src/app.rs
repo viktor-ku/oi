@@ -91,7 +91,7 @@ async fn run_timer(duration: u64, timer: String) {
 
         if let Some(sound_path) = &config.on_timeout.play {
             if sound_path.is_file() {
-                let player = Player::new(config.volume());
+                let player = Player::new(config.volume);
                 player.play(&sound_path);
             }
         }

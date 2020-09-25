@@ -11,17 +11,12 @@ use norm_path::norm_path;
 
 #[derive(Debug)]
 pub struct Config {
-    pub volume: f64,
+    pub volume: f32,
     pub on_timeout: OnTimeout,
 }
 
 impl Config {
-    pub const DEFAULT_VOLUME: f64 = 0.8;
-
-    #[inline]
-    pub fn volume(&self) -> f32 {
-        self.volume as f32
-    }
+    pub const DEFAULT_VOLUME: f32 = 0.8;
 
     pub fn config_dir() -> Option<PathBuf> {
         match ProjectDirs::from("com", "oi", "oi") {
@@ -47,10 +42,13 @@ impl Config {
         }
     }
 
-    fn parse_volume(value: &Value) -> f64 {
+    fn parse_volume(value: &Value) -> f32 {
         let num = value.get("volume").unwrap();
         match num {
-            serde_yaml::Value::Number(n) => n.as_f64().unwrap_or(Self::DEFAULT_VOLUME),
+            serde_yaml::Value::Number(n) => match n.as_f64() {
+                Some(n) => n as f32,
+                None => Self::DEFAULT_VOLUME,
+            },
             _ => Self::DEFAULT_VOLUME,
         }
     }
