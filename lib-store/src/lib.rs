@@ -7,7 +7,8 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct Record {
     pub message: String,
-    pub remaining: u64,
+    pub remaining: i64,
+    pub start: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -36,27 +37,21 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn end(&self) -> u64 {
-        (self.start as u64) + self.duration
+    pub fn end(&self) -> i64 {
+        self.start + (self.duration as i64)
     }
 }
 
 impl RecordsStore {
     pub async fn new(base_dir: PathBuf) -> Self {
-        let cwd = base_dir.join(".store/records");
-
-        fs::create_dir_all(&cwd)
-            .await
-            .expect("Could not create a .store/records dir");
-
+        let cwd = base_dir.join("records");
+        fs::create_dir_all(&cwd).await.unwrap();
         Self { cwd, base_dir }
     }
 
-    pub async fn find_active(&self) -> Vec<Record> {
+    pub async fn find_all(&self) -> Vec<Record> {
         let mut v = Vec::new();
-        let mut files = fs::read_dir(&self.cwd)
-            .await
-            .expect("Could not read .store/records dirs entries");
+        let mut files = fs::read_dir(&self.cwd).await.unwrap();
 
         let mut maybe_file = files.next_entry().await.unwrap();
         while let Some(file) = maybe_file {
@@ -65,10 +60,36 @@ impl RecordsStore {
             let diary: Diary = toml::from_str(&content).unwrap();
 
             let entry = diary.entries.first().unwrap();
-            let now = chrono::Utc::now().timestamp_millis() as u64;
+            let now = chrono::Utc::now().timestamp_millis();
+
+            v.push(Record {
+                start: entry.start,
+                message: entry.message.clone(),
+                remaining: (entry.end() - now),
+            });
+
+            maybe_file = files.next_entry().await.unwrap();
+        }
+
+        v
+    }
+
+    pub async fn find_active(&self) -> Vec<Record> {
+        let mut v = Vec::new();
+        let mut files = fs::read_dir(&self.cwd).await.unwrap();
+
+        let mut maybe_file = files.next_entry().await.unwrap();
+        while let Some(file) = maybe_file {
+            let filepath = file.path();
+            let content = fs::read_to_string(filepath).await.unwrap();
+            let diary: Diary = toml::from_str(&content).unwrap();
+
+            let entry = diary.entries.first().unwrap();
+            let now = chrono::Utc::now().timestamp_millis();
 
             if entry.end() > now {
                 v.push(Record {
+                    start: entry.start,
                     message: entry.message.clone(),
                     remaining: (entry.end() - now),
                 });
@@ -110,9 +131,12 @@ pub struct Store {
 }
 
 impl Store {
-    pub async fn new(base_dir: PathBuf) -> Self {
+    pub async fn new(base_dir: PathBuf, sandbox: String) -> Self {
+        let store_dir = base_dir.join(".store");
+        let with_sandbox = store_dir.join(&sandbox);
+
         Self {
-            records: RecordsStore::new(base_dir).await,
+            records: RecordsStore::new(with_sandbox).await,
         }
     }
 }

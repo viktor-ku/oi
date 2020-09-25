@@ -1,12 +1,19 @@
-use actix_web::{post, web, App, HttpServer};
+use actix_web::{get, post, web, App, HttpServer};
 use lib_api as api;
 use lib_player::Player;
 use lib_store::Store;
 use notify_rust::{Notification, Urgency};
 use std::sync::Mutex;
+use structopt::StructOpt;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
+
+#[derive(Debug, StructOpt)]
+pub struct Cli {
+    #[structopt(long, default_value = "default")]
+    pub sandbox: String,
+}
 
 mod config;
 use config::Config;
@@ -18,16 +25,46 @@ mod on_timeout;
 
 #[derive(Debug)]
 struct ChannelMessage {
-    duration: u64,
+    duration: i64,
     timer: String,
+}
+
+#[get("/timers/active")]
+async fn find_active_timers(store: web::Data<Store>) -> api::timer::FindActiveTimersResponse {
+    let records = store.records.find_active().await;
+    api::timer::FindActiveTimersResponse {
+        timers: records
+            .iter()
+            .map(|val| api::timer::Timer {
+                start: val.start,
+                duration: val.remaining as u64,
+                message: val.message.clone(),
+            })
+            .collect(),
+    }
+}
+
+#[get("/timers")]
+async fn find_all_timers(store: web::Data<Store>) -> api::timer::FindAllTimersResponse {
+    let records = store.records.find_all().await;
+    api::timer::FindAllTimersResponse {
+        timers: records
+            .iter()
+            .map(|val| api::timer::Timer {
+                start: val.start,
+                duration: val.remaining as u64,
+                message: val.message.clone(),
+            })
+            .collect(),
+    }
 }
 
 #[post("/timer")]
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
     store: web::Data<Store>,
-    payload: web::Json<api::CreateTimer>,
-) -> String {
+    payload: web::Json<api::timer::CreateTimer>,
+) -> api::timer::CreateTimerResponse {
     let id = store
         .records
         .create(lib_store::CreateRecord {
@@ -40,13 +77,13 @@ async fn create_timer(
     tx.lock()
         .unwrap()
         .send(ChannelMessage {
-            duration: payload.duration,
+            duration: payload.duration as i64,
             timer: payload.message.clone(),
         })
         .await
         .unwrap();
 
-    id.to_hyphenated().to_string()
+    api::timer::CreateTimerResponse { uuid: id }
 }
 
 async fn run_timer(duration: u64, timer: String) {
@@ -78,16 +115,18 @@ async fn run_timer(duration: u64, timer: String) {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
+    let cli = Cli::from_args();
+    println!("Sandbox in use: #{}", cli.sandbox);
 
-    let store = Store::new(Config::config_dir().unwrap()).await;
+    let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
+    let store = Store::new(Config::config_dir().unwrap(), cli.sandbox).await;
 
     spawn(async move {
         println!("Listening for new sleeping requests :)");
 
         while let Some(msg) = rx.recv().await {
             spawn(async move {
-                run_timer(msg.duration, msg.timer).await;
+                run_timer(msg.duration as u64, msg.timer).await;
             });
         }
     });
@@ -110,6 +149,8 @@ async fn main() -> std::io::Result<()> {
             .data(Mutex::new(tx.clone()))
             .data(store.clone())
             .service(create_timer)
+            .service(find_all_timers)
+            .service(find_active_timers)
     })
     .bind("127.0.0.1:8080")?
     .run()

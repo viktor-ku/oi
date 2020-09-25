@@ -7,3 +7,15 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.10", features = ["json"] }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+serde_json = "1.0"
+actix-web = "3.0"
+futures = "0.3"
+
+[dev-dependencies.tokio]
+version = "0.2"
+features = ["rt-threaded", "macros"]
+
+[dev-dependencies]
+pretty_assertions = "0.6"
+chrono = "0.4"
