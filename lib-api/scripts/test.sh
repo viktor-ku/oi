@@ -1,5 +1,7 @@
 #!/bin/sh
 
+pid_path=/tmp/.oid.pid
+
 call_clean() {
   local pid=$1
 
@@ -9,11 +11,13 @@ call_clean() {
   echo [clean] Removing test sandbox store...
   rm -rf ~/.config/oi/.store/test
 
+  echo [clean] Removing pid file itself...
+  rm -f $pid_path
+
   echo [clean] Done.
 }
 
 call_test() {
-  local pid_path=/tmp/.oid.pid
   ../target/debug/oid --sandbox test --detach --pid $pid_path
   local pid=$(cat $pid_path)
   cargo t -- --nocapture && call_clean $pid || call_clean $pid
