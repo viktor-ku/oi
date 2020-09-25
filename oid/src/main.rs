@@ -9,11 +9,8 @@ use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
 
-#[derive(Debug, StructOpt)]
-pub struct Cli {
-    #[structopt(long, default_value = "default")]
-    pub sandbox: String,
-}
+mod cli;
+use cli::Cli;
 
 mod config;
 use config::Config;
@@ -113,9 +110,7 @@ async fn run_timer(duration: u64, timer: String) {
     .unwrap();
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let cli = Cli::from_args();
+async fn app(cli: Cli) -> std::io::Result<()> {
     println!("Sandbox in use: #{}", cli.sandbox);
 
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
@@ -155,4 +150,26 @@ async fn main() -> std::io::Result<()> {
     .bind("127.0.0.1:8080")?
     .run()
     .await
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let cli = Cli::from_args();
+
+    if cli.detach {
+        println!("Spawning child...");
+        let args: Vec<String> = std::env::args().filter(|arg| arg != "--detach").collect();
+        let mut cmd = std::process::Command::new(args.first().unwrap());
+        cmd.args(&args[1..]);
+        if let Ok(child) = cmd.spawn() {
+            println!("Spawn OK ({})", child.id());
+        } else {
+            eprintln!("Could not spawn a child, exiting...");
+            std::process::exit(1);
+        }
+    } else {
+        app(cli).await?;
+    }
+
+    Ok(())
 }
