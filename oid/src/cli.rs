@@ -11,4 +11,7 @@ pub struct Cli {
 
     #[structopt(long)]
     pub pid: Option<PathBuf>,
+
+    #[structopt(long, default_value = "8080")]
+    pub port: u32,
 }

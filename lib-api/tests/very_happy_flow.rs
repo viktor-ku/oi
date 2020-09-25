@@ -3,7 +3,7 @@ use pretty_assertions::assert_eq;
 
 #[tokio::test]
 async fn very_happy_flow() {
-    let client = Client::new("http://localhost:8080");
+    let client = Client::new("http://localhost:9999");
 
     should_not_find_anything_at_all(&client).await;
     should_create_new_record(&client).await;

@@ -1300,6 +1300,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "lib-config"
+version = "0.1.0"
+dependencies = [
+ "directories",
+ "serde_yaml",
+]
+
+[[package]]
 name = "lib-duration"
 version = "0.1.0"
 dependencies = [
@@ -1666,13 +1674,11 @@ name = "oid"
 version = "0.1.0"
 dependencies = [
  "actix-web",
- "directories",
  "lib-api",
+ "lib-config",
  "lib-player",
  "lib-store",
  "notify-rust",
- "serde",
- "serde_yaml",
  "structopt",
  "tokio",
 ]

@@ -1,8 +1,13 @@
-use super::on_timeout::OnTimeout;
 use directories::ProjectDirs;
 use serde_yaml::Value;
 use std::fs::File;
 use std::path::PathBuf;
+
+mod on_timeout;
+use on_timeout::OnTimeout;
+
+mod norm_path;
+use norm_path::norm_path;
 
 #[derive(Debug)]
 pub struct Config {

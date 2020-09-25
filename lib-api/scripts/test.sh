@@ -18,7 +18,7 @@ call_clean() {
 }
 
 call_test() {
-  ../target/debug/oid --sandbox test --detach --pid $pid_path
+  ../target/debug/oid --sandbox test --detach --pid $pid_path --port 9999
   local pid=$(cat $pid_path)
   cargo t -- --nocapture && call_clean $pid || call_clean $pid
 }

@@ -1,6 +1,7 @@
-use super::{Cli, Config};
+use super::Cli;
 use actix_web::{get, post, web, App, HttpServer};
 use lib_api as api;
+use lib_config::Config;
 use lib_player::Player;
 use lib_store::Store;
 use notify_rust::{Notification, Urgency};
@@ -126,7 +127,8 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .unwrap();
     }
 
-    println!("Server is up and running, ready for accepting stuff!");
+    let bind = format!("localhost:{}", cli.port);
+    println!("Server is up and running at: http://{}", bind);
 
     HttpServer::new(move || {
         App::new()
@@ -136,7 +138,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .service(find_all_timers)
             .service(find_active_timers)
     })
-    .bind("127.0.0.1:8080")?
+    .bind(&bind)?
     .run()
     .await
 }

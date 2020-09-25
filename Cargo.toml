@@ -7,4 +7,5 @@ members = [
   "lib-player",
   "lib-store",
   "lib-api",
+  "lib-config",
 ]
