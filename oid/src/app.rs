@@ -76,9 +76,7 @@ async fn create_timer(
 }
 
 async fn run_timer(remaining: u64, timer: String) {
-    println!("gotta sleep for {} secs now, bye...", remaining / 1_000);
     time::delay_for(Duration::from_millis(remaining)).await;
-    println!("opacha! time to wake up!");
 
     spawn_blocking(move || {
         let config = Config::new();
@@ -103,14 +101,10 @@ async fn run_timer(remaining: u64, timer: String) {
 }
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
-    println!("Sandbox in use: #{}", cli.sandbox);
-
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
     let store = Store::new(Config::config_dir().unwrap(), cli.sandbox).await;
 
     spawn(async move {
-        println!("Listening for new sleeping requests :)");
-
         while let Some(msg) = rx.recv().await {
             spawn(async move {
                 run_timer(msg.remaining as u64, msg.timer).await;
@@ -130,7 +124,6 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     }
 
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
-    println!("Server is up and running at: http://{}", bind);
 
     HttpServer::new(move || {
         App::new()
