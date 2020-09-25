@@ -7,13 +7,19 @@ async fn very_happy_flow() {
 
     should_not_find_anything_at_all(&client).await;
     should_create_new_record(&client).await;
-    should_find_one_record(&client).await;
-    that_one_record_should_be_active(&client).await;
 
+    tokio::join!(
+        should_find_one_record(&client),
+        should_find_one_active_record(&client),
+    );
+
+    println!("Sleeping for 3 seconds to wait until the active record timeouts...");
     tokio::time::delay_for(tokio::time::Duration::from_secs(3)).await;
 
-    should_not_find_any_more_active_timers_after_3_secs(&client).await;
-    should_find_one_record(&client).await;
+    tokio::join!(
+        should_not_find_any_more_active_timers_after_3_secs(&client),
+        should_find_one_record(&client),
+    );
 }
 
 async fn should_not_find_any_more_active_timers_after_3_secs(client: &Client<'_>) {
@@ -33,7 +39,7 @@ async fn should_not_find_any_more_active_timers_after_3_secs(client: &Client<'_>
     assert_eq!(res.data.unwrap().timers.is_empty(), true);
 }
 
-async fn that_one_record_should_be_active(client: &Client<'_>) {
+async fn should_find_one_active_record(client: &Client<'_>) {
     println!("Should also find one active record");
 
     let res = client
