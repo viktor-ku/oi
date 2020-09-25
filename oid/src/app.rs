@@ -3,7 +3,7 @@ use actix_web::{get, post, web, App, HttpServer};
 use lib_api as api;
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::Store;
+use lib_store::{self as store, Store};
 use notify_rust::{Notification, Urgency};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
@@ -12,20 +12,21 @@ use tokio::time::{self, Duration};
 
 #[derive(Debug)]
 struct ChannelMessage {
-    duration: i64,
+    remaining: u64,
     timer: String,
 }
 
 #[get("/timers/active")]
 async fn find_active_timers(store: web::Data<Store>) -> api::timer::FindActiveTimersResponse {
-    let records = store.records.find_active().await;
+    let records = store.timers.find_active().await;
     api::timer::FindActiveTimersResponse {
         timers: records
             .iter()
             .map(|val| api::timer::Timer {
                 start: val.start,
-                duration: val.remaining as u64,
                 message: val.message.clone(),
+                duration: val.duration,
+                remaining: val.remaining(),
             })
             .collect(),
     }
@@ -33,14 +34,15 @@ async fn find_active_timers(store: web::Data<Store>) -> api::timer::FindActiveTi
 
 #[get("/timers")]
 async fn find_all_timers(store: web::Data<Store>) -> api::timer::FindAllTimersResponse {
-    let records = store.records.find_all().await;
+    let records = store.timers.find_all().await;
     api::timer::FindAllTimersResponse {
         timers: records
             .iter()
             .map(|val| api::timer::Timer {
                 start: val.start,
-                duration: val.remaining as u64,
                 message: val.message.clone(),
+                duration: val.duration,
+                remaining: val.remaining(),
             })
             .collect(),
     }
@@ -53,8 +55,8 @@ async fn create_timer(
     payload: web::Json<api::timer::CreateTimer>,
 ) -> api::timer::CreateTimerResponse {
     let id = store
-        .records
-        .create(lib_store::CreateRecord {
+        .timers
+        .create(store::TimerInput {
             start: payload.start,
             message: payload.message.clone(),
             duration: payload.duration,
@@ -64,7 +66,7 @@ async fn create_timer(
     tx.lock()
         .unwrap()
         .send(ChannelMessage {
-            duration: payload.duration as i64,
+            remaining: payload.duration,
             timer: payload.message.clone(),
         })
         .await
@@ -73,9 +75,9 @@ async fn create_timer(
     api::timer::CreateTimerResponse { uuid: id }
 }
 
-async fn run_timer(duration: u64, timer: String) {
-    println!("gotta sleep for {} secs now, bye...", duration / 1_000);
-    time::delay_for(Duration::from_millis(duration)).await;
+async fn run_timer(remaining: u64, timer: String) {
+    println!("gotta sleep for {} secs now, bye...", remaining / 1_000);
+    time::delay_for(Duration::from_millis(remaining)).await;
     println!("opacha! time to wake up!");
 
     spawn_blocking(move || {
@@ -111,17 +113,17 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
 
         while let Some(msg) = rx.recv().await {
             spawn(async move {
-                run_timer(msg.duration as u64, msg.timer).await;
+                run_timer(msg.remaining as u64, msg.timer).await;
             });
         }
     });
 
-    let active_records = store.records.find_active().await;
-    for record in active_records {
+    let active_timers = store.timers.find_active().await;
+    for timer in active_timers {
         tx.clone()
             .send(ChannelMessage {
-                duration: record.remaining,
-                timer: record.message.clone(),
+                remaining: timer.remaining(),
+                timer: timer.message.clone(),
             })
             .await
             .unwrap();

@@ -5,20 +5,38 @@ use tokio::prelude::*;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct Record {
+pub struct Timer {
     pub message: String,
-    pub remaining: i64,
+    pub duration: u64,
     pub start: i64,
 }
 
+impl Timer {
+    /// Amount of `ms` until the given timer will timeout
+    pub fn remaining(&self) -> u64 {
+        let now = chrono::Utc::now().timestamp_millis() as u64;
+        let end = (self.start as u64) + self.duration;
+        if end > now {
+            end - now
+        } else {
+            0
+        }
+    }
+
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        self.remaining() > 0
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct RecordsStore {
+pub struct TimersStore {
     base_dir: PathBuf,
     cwd: PathBuf,
 }
 
 #[derive(Debug)]
-pub struct CreateRecord {
+pub struct TimerInput {
     pub start: i64,
     pub message: String,
     pub duration: u64,
@@ -42,14 +60,14 @@ impl Entry {
     }
 }
 
-impl RecordsStore {
+impl TimersStore {
     pub async fn new(base_dir: PathBuf) -> Self {
-        let cwd = base_dir.join("records");
+        let cwd = base_dir.join("timers");
         fs::create_dir_all(&cwd).await.unwrap();
         Self { cwd, base_dir }
     }
 
-    pub async fn find_all(&self) -> Vec<Record> {
+    pub async fn find_all(&self) -> Vec<Timer> {
         let mut v = Vec::new();
         let mut files = fs::read_dir(&self.cwd).await.unwrap();
 
@@ -60,12 +78,11 @@ impl RecordsStore {
             let diary: Diary = toml::from_str(&content).unwrap();
 
             let entry = diary.entries.first().unwrap();
-            let now = chrono::Utc::now().timestamp_millis();
 
-            v.push(Record {
+            v.push(Timer {
                 start: entry.start,
                 message: entry.message.clone(),
-                remaining: (entry.end() - now),
+                duration: entry.duration,
             });
 
             maybe_file = files.next_entry().await.unwrap();
@@ -74,7 +91,7 @@ impl RecordsStore {
         v
     }
 
-    pub async fn find_active(&self) -> Vec<Record> {
+    pub async fn find_active(&self) -> Vec<Timer> {
         let mut v = Vec::new();
         let mut files = fs::read_dir(&self.cwd).await.unwrap();
 
@@ -85,14 +102,15 @@ impl RecordsStore {
             let diary: Diary = toml::from_str(&content).unwrap();
 
             let entry = diary.entries.first().unwrap();
-            let now = chrono::Utc::now().timestamp_millis();
 
-            if entry.end() > now {
-                v.push(Record {
-                    start: entry.start,
-                    message: entry.message.clone(),
-                    remaining: (entry.end() - now),
-                });
+            let timer = Timer {
+                start: entry.start,
+                message: entry.message.clone(),
+                duration: entry.duration,
+            };
+
+            if timer.is_active() {
+                v.push(timer);
             }
 
             maybe_file = files.next_entry().await.unwrap();
@@ -101,7 +119,7 @@ impl RecordsStore {
         v
     }
 
-    pub async fn create(&self, payload: CreateRecord) -> Uuid {
+    pub async fn create(&self, payload: TimerInput) -> Uuid {
         let id = Uuid::new_v4();
         let filename = self
             .cwd
@@ -127,7 +145,7 @@ impl RecordsStore {
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    pub records: RecordsStore,
+    pub timers: TimersStore,
 }
 
 impl Store {
@@ -136,7 +154,7 @@ impl Store {
         let with_sandbox = store_dir.join(&sandbox);
 
         Self {
-            records: RecordsStore::new(with_sandbox).await,
+            timers: TimersStore::new(with_sandbox).await,
         }
     }
 }

@@ -20,6 +20,7 @@ pub struct Timer {
     pub start: i64,
     pub duration: u64,
     pub message: String,
+    pub remaining: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
