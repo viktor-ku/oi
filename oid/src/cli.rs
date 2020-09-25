@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -7,4 +8,7 @@ pub struct Cli {
 
     #[structopt(long)]
     pub detach: bool,
+
+    #[structopt(long)]
+    pub pid: Option<PathBuf>,
 }
