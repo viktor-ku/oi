@@ -1,4 +1,4 @@
-// Everyone should have consistent results when testing
+/// Everyone should have consistent results when testing
 pub const UTC_OFFSET: i32 = 3 * 3_600;
 
 #[macro_export]
@@ -101,7 +101,7 @@ macro_rules! test {
 #[macro_export]
 macro_rules! duration {
     ($h:literal:$m:literal-$s:literal) => {
-        ($h * 60 * 60 * 1_000) + ($m * 60 * 1_000) + ($s * 1_000)
+        (($h * 60 * 60 * 1_000) + ($m * 60 * 1_000) + ($s * 1_000)) as f64
     };
 
     ($h:literal:$m:literal) => {

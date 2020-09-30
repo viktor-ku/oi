@@ -11,7 +11,7 @@ struct InputParser;
 #[wasm_bindgen]
 #[derive(Debug, PartialEq)]
 pub struct Runic {
-    total: u64,
+    total: f64,
 }
 
 const SECOND: f64 = 1_000.0;
@@ -27,8 +27,8 @@ use chrono::{DateTime, Local, TimeZone};
 #[wasm_bindgen]
 impl Runic {
     #[inline]
-    pub fn total(&self) -> u64 {
-        return self.total;
+    pub fn total(&self) -> f64 {
+        self.total
     }
 
     pub fn translate(ms: f64) -> String {
@@ -108,13 +108,15 @@ impl Runic {
                     }
                 }
 
-                total
+                if total.is_sign_negative() {
+                    0.0
+                } else {
+                    total
+                }
             }
             Err(_) => panic!("poop"),
         };
 
-        Self {
-            total: total as u64,
-        }
+        Self { total }
     }
 }

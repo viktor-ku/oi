@@ -41,7 +41,7 @@ impl Cli {
             .timers
             .create(&api::timer::CreateTimer {
                 start: now.timestamp_millis(),
-                duration,
+                duration: duration as u64,
                 message: input.to_owned(),
             })
             .await
@@ -50,7 +50,7 @@ impl Cli {
                 if response.status().is_success() {
                     Notification::new()
                         .summary("timer is now running")
-                        .body(&Runic::translate(duration as f64))
+                        .body(&Runic::translate(duration))
                         .timeout(2_500)
                         .show()
                         .unwrap();
