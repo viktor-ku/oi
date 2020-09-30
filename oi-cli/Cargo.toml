@@ -13,8 +13,8 @@ structopt = "0.3"
 version = "0.2"
 features = ["macros"]
 
-[dependencies.lib-duration]
-path = "../lib-duration"
+[dependencies.runic]
+path = "../runic"
 
 [dependencies.lib-api]
 path = "../lib-api"

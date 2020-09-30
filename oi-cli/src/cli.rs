@@ -1,8 +1,8 @@
 use chrono::Local;
 use lib_api::{self as api, Client};
 use lib_config::Config;
-use lib_duration::duration;
 use notify_rust::Notification;
+use runic::Runic;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -30,7 +30,8 @@ impl Cli {
     async fn run(&self, props: &RunProps) {
         let now = Local::now();
         let input = &props.timer;
-        let duration = duration(input, &now).expect("failed to parse input");
+        let rune = Runic::describe(input, now.timestamp_millis() as u64);
+        let duration = rune.total();
 
         let config = Config::new();
         let bind = format!("http://localhost:{}", config.port);
@@ -40,7 +41,7 @@ impl Cli {
             .timers
             .create(&api::timer::CreateTimer {
                 start: now.timestamp_millis(),
-                duration: duration.total(),
+                duration,
                 message: input.to_owned(),
             })
             .await
@@ -49,7 +50,7 @@ impl Cli {
                 if response.status().is_success() {
                     Notification::new()
                         .summary("timer is now running")
-                        .body(&duration.format())
+                        .body(&Runic::translate(duration as f64))
                         .timeout(2_500)
                         .show()
                         .unwrap();
