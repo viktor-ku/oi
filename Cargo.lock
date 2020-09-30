@@ -1320,16 +1320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib-duration"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "pest",
- "pest_derive",
- "pretty_assertions",
-]
-
-[[package]]
 name = "lib-player"
 version = "0.1.0"
 dependencies = [
@@ -1676,8 +1666,8 @@ dependencies = [
  "chrono",
  "lib-api",
  "lib-config",
- "lib-duration",
  "notify-rust",
+ "runic",
  "structopt",
  "tokio",
 ]
