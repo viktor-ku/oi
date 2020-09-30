@@ -125,15 +125,18 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
 
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
 
-    HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         App::new()
             .data(Mutex::new(tx.clone()))
             .data(store.clone())
             .service(create_timer)
             .service(find_all_timers)
             .service(find_active_timers)
-    })
-    .bind(&bind)?
-    .run()
-    .await
+    });
+
+    if let Some(workers) = cli.workers {
+        server = server.workers(workers);
+    }
+
+    server.bind(&bind)?.run().await
 }

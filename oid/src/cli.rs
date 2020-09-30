@@ -14,4 +14,7 @@ pub struct Cli {
 
     #[structopt(long)]
     pub port: Option<u32>,
+
+    #[structopt(long)]
+    pub workers: Option<usize>,
 }
