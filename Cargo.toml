@@ -4,6 +4,8 @@ members = [
   "oid",
 
   "lib-duration",
+  "runic",
+
   "lib-player",
   "lib-store",
   "lib-api",
