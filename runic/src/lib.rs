@@ -31,6 +31,20 @@ impl Runic {
         return self.total;
     }
 
+    pub fn translate(ms: f64) -> String {
+        let mut ms = ms;
+
+        let hours = (ms / HOUR).trunc();
+        ms -= hours * HOUR;
+
+        let minutes = (ms / MINUTE).trunc();
+        ms -= minutes * MINUTE;
+
+        let seconds = (ms / SECOND).trunc();
+
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    }
+
     fn duration_expr(expr: Pair<Rule>) -> f64 {
         let mut needle = 0.0;
 
