@@ -52,7 +52,7 @@ async fn find_all_timers(store: web::Data<Store>) -> api::timer::FindAllTimersRe
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
     store: web::Data<Store>,
-    payload: web::Json<api::timer::CreateTimer>,
+    payload: web::Json<api::timer::CreateTimerInput>,
 ) -> api::timer::CreateTimerResponse {
     let id = store
         .timers

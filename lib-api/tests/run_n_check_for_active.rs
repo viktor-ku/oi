@@ -2,7 +2,7 @@ use lib_api::{self as api, Client};
 use pretty_assertions::assert_eq;
 
 #[tokio::test]
-async fn very_happy_flow() {
+async fn run_n_check_for_active() {
     let client = Client::new("http://localhost:9999");
 
     should_not_find_anything_at_all(&client).await;
@@ -95,7 +95,7 @@ async fn should_create_new_record(client: &Client<'_>) {
 
     let res = client
         .timers
-        .create(&api::timer::CreateTimer {
+        .create(&api::timer::CreateTimerInput {
             start: chrono::Utc::now().timestamp_millis(),
             duration: 3_000,
             message: "lets try 3 seconds simple timer for now".to_owned(),

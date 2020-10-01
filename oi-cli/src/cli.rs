@@ -39,7 +39,7 @@ impl Cli {
 
         match client
             .timers
-            .create(&api::timer::CreateTimer {
+            .create(&api::timer::CreateTimerInput {
                 start: now.timestamp_millis(),
                 duration: duration as u64,
                 message: input.to_owned(),

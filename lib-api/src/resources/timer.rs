@@ -24,7 +24,7 @@ pub struct Timer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CreateTimer {
+pub struct CreateTimerInput {
     pub start: i64,
     pub duration: u64,
     pub message: String,
@@ -84,7 +84,7 @@ impl<'resource> TimersResource<'resource> {
 
     pub async fn create(
         &self,
-        body: &CreateTimer,
+        body: &CreateTimerInput,
     ) -> Result<Response<Result<CreateTimerResponse>>> {
         let res = self
             .client
