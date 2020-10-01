@@ -30,7 +30,7 @@ impl Cli {
     async fn run(&self, props: &RunProps) {
         let now = Local::now();
         let input = &props.timer;
-        let rune = Runic::describe(input, now.timestamp_millis() as u64);
+        let rune = Runic::describe(input, now.timestamp() as u64);
         let duration = rune.total();
 
         let config = Config::new();
