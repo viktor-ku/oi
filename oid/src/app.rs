@@ -1,5 +1,5 @@
 use super::Cli;
-use actix_web::{get, post, web, App, HttpServer};
+use actix_web::{delete, get, post, web, App, HttpServer};
 use lib_api as api;
 use lib_config::Config;
 use lib_player::Player;
@@ -18,31 +18,63 @@ struct ChannelMessage {
 
 #[get("/timers/active")]
 async fn find_active_timers(store: web::Data<Store>) -> api::timer::FindActiveTimersResponse {
-    let records = store.timers.find_active().await;
+    let timers = store.timers.find_active().await;
     api::timer::FindActiveTimersResponse {
-        timers: records
+        timers: timers
             .iter()
-            .map(|val| api::timer::Timer {
-                start: val.start,
-                message: val.message.clone(),
-                duration: val.duration,
-                remaining: val.remaining(),
+            .map(|timer| api::timer::Timer {
+                uuid: timer.uuid,
+                start: timer.start,
+                message: timer.message.clone(),
+                duration: timer.duration,
+                remaining: timer.remaining(),
             })
             .collect(),
     }
 }
 
+#[get("/timers/{uuid}")]
+async fn find_by_uuid(
+    store: web::Data<Store>,
+    web::Path(uuid): web::Path<uuid::Uuid>,
+) -> api::timer::FindByUuidResponse {
+    api::timer::FindByUuidResponse {
+        timer: store
+            .timers
+            .find_by_uuid(&uuid)
+            .await
+            .map(|timer| api::timer::Timer {
+                uuid: timer.uuid,
+                start: timer.start,
+                message: timer.message.clone(),
+                duration: timer.duration,
+                remaining: timer.remaining(),
+            }),
+    }
+}
+
+#[delete("/timers/{uuid}")]
+async fn delete_by_uuid(
+    store: web::Data<Store>,
+    web::Path(uuid): web::Path<uuid::Uuid>,
+) -> api::timer::DeleteByUuidResponse {
+    api::timer::DeleteByUuidResponse {
+        uuid: store.timers.delete_by_uuid(&uuid).await,
+    }
+}
+
 #[get("/timers")]
 async fn find_all_timers(store: web::Data<Store>) -> api::timer::FindAllTimersResponse {
-    let records = store.timers.find_all().await;
+    let timers = store.timers.find_all().await;
     api::timer::FindAllTimersResponse {
-        timers: records
+        timers: timers
             .iter()
-            .map(|val| api::timer::Timer {
-                start: val.start,
-                message: val.message.clone(),
-                duration: val.duration,
-                remaining: val.remaining(),
+            .map(|timer| api::timer::Timer {
+                uuid: timer.uuid,
+                start: timer.start,
+                message: timer.message.clone(),
+                duration: timer.duration,
+                remaining: timer.remaining(),
             })
             .collect(),
     }
@@ -54,7 +86,7 @@ async fn create_timer(
     store: web::Data<Store>,
     payload: web::Json<api::timer::CreateTimerInput>,
 ) -> api::timer::CreateTimerResponse {
-    let id = store
+    let uuid = store
         .timers
         .create(store::TimerInput {
             start: payload.start,
@@ -72,7 +104,7 @@ async fn create_timer(
         .await
         .unwrap();
 
-    api::timer::CreateTimerResponse { uuid: id }
+    api::timer::CreateTimerResponse { uuid }
 }
 
 async fn run_timer(remaining: u64, timer: String) {
@@ -132,6 +164,8 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .service(create_timer)
             .service(find_all_timers)
             .service(find_active_timers)
+            .service(find_by_uuid)
+            .service(delete_by_uuid)
     });
 
     if let Some(workers) = cli.workers {

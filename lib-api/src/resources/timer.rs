@@ -15,12 +15,32 @@ pub struct FindActiveTimersResponse {
 }
 impl_responder!(FindActiveTimersResponse);
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindByUuidResponse {
+    pub timer: Option<Timer>,
+}
+impl_responder!(FindByUuidResponse);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteByUuidResponse {
+    pub uuid: Option<uuid::Uuid>,
+}
+impl_responder!(DeleteByUuidResponse);
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Timer {
+    pub uuid: uuid::Uuid,
     pub start: i64,
     pub duration: u64,
     pub message: String,
     pub remaining: u64,
+}
+
+impl Timer {
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        self.remaining > 0
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,6 +90,44 @@ impl<'resource> TimersResource<'resource> {
         let res = self
             .client
             .get(&format!("{}/timers", self.url))
+            .send()
+            .await;
+
+        match res {
+            Ok(res) => Ok(Response {
+                status: res.status().as_u16(),
+                data: res.json().await,
+            }),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn find_by_uuid(
+        &self,
+        uuid: &uuid::Uuid,
+    ) -> Result<Response<Result<FindByUuidResponse>>> {
+        let res = self
+            .client
+            .get(&format!("{}/timers/{}", self.url, uuid))
+            .send()
+            .await;
+
+        match res {
+            Ok(res) => Ok(Response {
+                status: res.status().as_u16(),
+                data: res.json().await,
+            }),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn delete_by_uuid(
+        &self,
+        uuid: &uuid::Uuid,
+    ) -> Result<Response<Result<DeleteByUuidResponse>>> {
+        let res = self
+            .client
+            .delete(&format!("{}/timers/{}", self.url, uuid))
             .send()
             .await;
 

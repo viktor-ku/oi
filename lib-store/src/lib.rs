@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct Timer {
+    pub uuid: uuid::Uuid,
     pub message: String,
     pub duration: u64,
     pub start: i64,
@@ -49,6 +50,7 @@ pub struct Diary {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
+    uuid: uuid::Uuid,
     start: i64,
     message: String,
     duration: u64,
@@ -80,6 +82,7 @@ impl TimersStore {
             let entry = diary.entries.first().unwrap();
 
             v.push(Timer {
+                uuid: entry.uuid,
                 start: entry.start,
                 message: entry.message.clone(),
                 duration: entry.duration,
@@ -89,6 +92,40 @@ impl TimersStore {
         }
 
         v
+    }
+
+    pub async fn find_by_uuid(&self, uuid: &uuid::Uuid) -> Option<Timer> {
+        let filename = &self
+            .cwd
+            .join(uuid.to_hyphenated().to_string())
+            .with_extension("toml");
+
+        match fs::read_to_string(filename).await {
+            Ok(content) => {
+                let diary: Diary = toml::from_str(&content).unwrap();
+                let entry = diary.entries.first().unwrap();
+
+                Some(Timer {
+                    uuid: entry.uuid,
+                    start: entry.start,
+                    message: entry.message.clone(),
+                    duration: entry.duration,
+                })
+            }
+            Err(_) => None,
+        }
+    }
+
+    pub async fn delete_by_uuid(&self, uuid: &uuid::Uuid) -> Option<uuid::Uuid> {
+        let filename = &self
+            .cwd
+            .join(uuid.to_hyphenated().to_string())
+            .with_extension("toml");
+
+        match fs::remove_file(filename).await {
+            Ok(_) => Some(*uuid),
+            Err(_) => None,
+        }
     }
 
     pub async fn find_active(&self) -> Vec<Timer> {
@@ -104,6 +141,7 @@ impl TimersStore {
             let entry = diary.entries.first().unwrap();
 
             let timer = Timer {
+                uuid: entry.uuid,
                 start: entry.start,
                 message: entry.message.clone(),
                 duration: entry.duration,
@@ -120,16 +158,17 @@ impl TimersStore {
     }
 
     pub async fn create(&self, payload: TimerInput) -> Uuid {
-        let id = Uuid::new_v4();
+        let uuid = Uuid::new_v4();
         let filename = self
             .cwd
-            .join(id.to_hyphenated().to_string())
+            .join(uuid.to_hyphenated().to_string())
             .with_extension("toml");
         let mut file = fs::File::create(&filename)
             .await
             .expect("Could not create a record file!");
         let body = toml::to_string(&Diary {
             entries: vec![Entry {
+                uuid,
                 start: payload.start,
                 message: payload.message,
                 duration: payload.duration,
@@ -139,7 +178,7 @@ impl TimersStore {
         file.write_all(&body.as_bytes())
             .await
             .expect("Could not write to a record file");
-        id
+        uuid
     }
 }
 
