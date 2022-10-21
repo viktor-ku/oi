@@ -1,4 +1,4 @@
-use chrono::Local;
+use chrono::Utc;
 use lib_api::{self as api, Client};
 use lib_config::Config;
 use notify_rust::{Notification, Urgency};
@@ -75,10 +75,16 @@ impl Cli {
     }
 
     async fn run(&self, props: &RunProps) {
-        let now = Local::now();
+        let now = Utc::now();
         let input = &props.timer;
-        let rune = Runic::describe(input, now.timestamp() as u64);
-        let duration = rune.total();
+        let mut runic = Runic::new(input);
+        runic.timestamp(now.timestamp());
+        let duration = runic.describe().unwrap();
+
+        let body = {
+            let (h, m, s) = runic::hms(duration);
+            format!("{}h {}m {}s", h, m, s)
+        };
 
         let config = Config::new();
         let bind = format!("http://localhost:{}", config.port);
@@ -97,7 +103,7 @@ impl Cli {
                 if response.status().is_success() {
                     Notification::new()
                         .summary("timer is now running")
-                        .body(&Runic::translate(duration))
+                        .body(&body)
                         .timeout(2_500)
                         .show()
                         .unwrap();

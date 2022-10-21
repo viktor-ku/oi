@@ -3,8 +3,6 @@ members = [
   "oi-cli",
   "oid",
 
-  "runic",
-
   "lib-player",
   "lib-store",
   "lib-api",
