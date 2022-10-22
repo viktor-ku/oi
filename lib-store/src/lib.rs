@@ -1,5 +1,5 @@
 use anyhow::Result;
-use automerge::{transaction::Transactable, Automerge, AutomergeError, ROOT};
+use automerge::{transaction::Transactable, Automerge, AutomergeError, ObjId, ROOT};
 use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
 use uuid::Uuid;
@@ -16,8 +16,8 @@ pub struct Timer {
 
 impl Timer {
     /// Amount of `ms` until the given timer will timeout
-    pub fn remaining(&self) -> u64 {
-        let now = chrono::Utc::now().timestamp_millis() as u64;
+    pub fn remaining(&self, baseline: Option<u64>) -> u64 {
+        let now = baseline.unwrap_or_else(|| chrono::Utc::now().timestamp_millis() as u64);
         let end = self.start + self.duration;
         if end > now {
             end - now
@@ -26,9 +26,8 @@ impl Timer {
         }
     }
 
-    #[inline]
-    pub fn is_active(&self) -> bool {
-        self.remaining() > 0
+    pub fn is_active(&self, baseline: Option<u64>) -> bool {
+        self.remaining(baseline) > 0
     }
 }
 
@@ -53,40 +52,26 @@ impl TimersStore {
 
     pub fn find_all(&self) -> Result<Vec<Timer>> {
         let mut v = Vec::new();
-
         let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
 
-        for (_, _, timer) in self.state.map_range(timers, ..) {
-            let uuid = {
-                let (uuid, _) = self.state.get(&timer, "uuid")?.unwrap();
-                let uuid = uuid.into_string().unwrap();
-                Uuid::from_str(&uuid).unwrap()
-            };
-            let start = {
-                let (start, _) = self.state.get(&timer, "start")?.unwrap();
-                start.to_u64().unwrap()
-            };
-            let message = {
-                let (message, _) = self.state.get(&timer, "message")?.unwrap();
-                message.to_string()
-            };
-            let duration = {
-                let (duration, _) = self.state.get(&timer, "duration")?.unwrap();
-                duration.to_u64().unwrap()
-            };
-            v.push(Timer {
-                uuid,
-                start,
-                message,
-                duration,
-            });
+        for (_, _, timer_id) in self.state.map_range(timers, ..) {
+            let timer = self.try_assemble_timer(&timer_id)?;
+            v.push(timer);
         }
 
         Ok(v)
     }
 
     pub fn find_by_uuid(&self, uuid: &Uuid) -> Result<Option<Timer>> {
-        Ok(None)
+        let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
+
+        match self.state.get(timers, uuid.to_string())? {
+            Some((_, timer_id)) => {
+                let timer = self.try_assemble_timer(&timer_id)?;
+                Ok(Some(timer))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Finds active timers only.
@@ -96,48 +81,30 @@ impl TimersStore {
     /// Compares to `now` otherwise.
     pub fn find_active(&self, baseline: Option<u64>) -> Result<Vec<Timer>> {
         let mut v = Vec::new();
-        let now = baseline.unwrap_or_else(|| chrono::Utc::now().timestamp_millis() as _);
-
         let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
 
-        for (_, _, timer) in self.state.map_range(timers, ..) {
-            let start = {
-                let (start, _) = self.state.get(&timer, "start")?.unwrap();
-                start.to_u64().unwrap()
-            };
-            let duration = {
-                let (duration, _) = self.state.get(&timer, "duration")?.unwrap();
-                duration.to_u64().unwrap()
-            };
+        for (_, _, timer_id) in self.state.map_range(timers, ..) {
+            let timer = self.try_assemble_timer(&timer_id)?;
 
-            let end = start + duration;
-
-            if end < now {
-                continue;
+            if timer.is_active(baseline) {
+                v.push(timer);
             }
-
-            let uuid = {
-                let (uuid, _) = self.state.get(&timer, "uuid")?.unwrap();
-                let uuid = uuid.into_string().unwrap();
-                Uuid::from_str(&uuid).unwrap()
-            };
-            let message = {
-                let (message, _) = self.state.get(&timer, "message")?.unwrap();
-                message.to_string()
-            };
-            v.push(Timer {
-                uuid,
-                start,
-                message,
-                duration,
-            });
         }
 
         Ok(v)
     }
 
-    pub async fn delete_by_uuid(&self, uuid: &Uuid) -> Result<Option<Uuid>> {
-        Ok(None)
+    pub fn delete_by_uuid(&mut self, uuid: &Uuid) -> Result<bool> {
+        self.state
+            .transact::<_, _, AutomergeError>(|tx| {
+                let (_, timers) = tx.get(ROOT, "timers")?.unwrap();
+                tx.delete(timers, uuid.to_string())?;
+                Ok(())
+            })
+            .unwrap()
+            .result;
+
+        Ok(true)
     }
 
     pub async fn create(&mut self, payload: TimerInput) -> Result<Uuid> {
@@ -157,6 +124,32 @@ impl TimersStore {
             .result;
 
         Ok(uuid)
+    }
+
+    fn try_assemble_timer(&self, id: &ObjId) -> Result<Timer> {
+        let uuid = {
+            let (uuid, _) = self.state.get(id, "uuid")?.unwrap();
+            let uuid = uuid.into_string().unwrap();
+            Uuid::from_str(&uuid).unwrap()
+        };
+        let start = {
+            let (start, _) = self.state.get(id, "start")?.unwrap();
+            start.to_u64().unwrap()
+        };
+        let message = {
+            let (message, _) = self.state.get(id, "message")?.unwrap();
+            message.into_string().unwrap()
+        };
+        let duration = {
+            let (duration, _) = self.state.get(id, "duration")?.unwrap();
+            duration.to_u64().unwrap()
+        };
+        Ok(Timer {
+            uuid,
+            start,
+            message,
+            duration,
+        })
     }
 }
 
@@ -248,6 +241,53 @@ mod tests {
             })
             .await?;
         assert_eq!(store.timers.find_active(None)?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find_by_uuid() -> Result<()> {
+        let mut store = Store::new(None).await?;
+        let uuid = store
+            .timers
+            .create(TimerInput {
+                start: 0,
+                message: "some".into(),
+                duration: 1000,
+            })
+            .await?;
+        assert_eq!(
+            store.timers.find_by_uuid(&uuid)?,
+            Some(Timer {
+                uuid: uuid.clone(),
+                start: 0,
+                message: "some".to_string(),
+                duration: 1000
+            })
+        );
+        assert_eq!(store.timers.find_by_uuid(&Uuid::new_v4())?, None);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_delete() -> Result<()> {
+        let mut store = Store::new(None).await?;
+
+        let uuid = store
+            .timers
+            .create(TimerInput {
+                start: 0,
+                message: "some".into(),
+                duration: 1000,
+            })
+            .await?;
+
+        assert_eq!(store.timers.find_all()?.len(), 1);
+
+        assert_eq!(store.timers.delete_by_uuid(&uuid)?, true);
+
+        assert_eq!(store.timers.find_by_uuid(&uuid)?, None);
+        assert_eq!(store.timers.find_all()?.len(), 0);
+
         Ok(())
     }
 }
