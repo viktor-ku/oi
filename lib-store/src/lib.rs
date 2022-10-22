@@ -89,8 +89,14 @@ impl TimersStore {
         Ok(None)
     }
 
-    pub fn find_active(&self) -> Result<Vec<Timer>> {
+    /// Finds active timers only.
+    ///
+    /// Additionaly you can provide `baseline` which is a utc timestamp
+    /// in milliseconds against which active timers will be compared.
+    /// Compares to `now` otherwise.
+    pub fn find_active(&self, baseline: Option<u64>) -> Result<Vec<Timer>> {
         let mut v = Vec::new();
+        let now = baseline.unwrap_or_else(|| chrono::Utc::now().timestamp_millis() as _);
 
         let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
 
@@ -104,7 +110,6 @@ impl TimersStore {
                 duration.to_u64().unwrap()
             };
 
-            let now = chrono::Utc::now().timestamp_millis() as _;
             let end = start + duration;
 
             if end < now {
@@ -242,7 +247,7 @@ mod tests {
                 duration: 60_000,
             })
             .await?;
-        assert_eq!(store.timers.find_active()?.len(), 1);
+        assert_eq!(store.timers.find_active(None)?.len(), 1);
         Ok(())
     }
 }
