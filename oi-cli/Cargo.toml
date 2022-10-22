@@ -2,16 +2,16 @@
 name = "oi"
 version = "0.1.0"
 authors = ["Viktor Kuroljov <viktor@ku.family>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-notify-rust = "4"
+notify-rust = "4.5"
 chrono = "0.4"
 structopt = "0.3"
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "1.2", features = ["serde", "v4"] }
 
 [dependencies.tokio]
-version = "0.2"
+version = "1.21"
 features = ["macros"]
 
 [dependencies.runic]
