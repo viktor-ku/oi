@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use anyhow::Result;
+use automerge::{transaction::Transactable, Automerge, AutomergeError, ROOT};
+use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
-use tokio::prelude::*;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Timer {
     pub uuid: uuid::Uuid,
     pub message: String,
@@ -32,8 +32,7 @@ impl Timer {
 
 #[derive(Debug, Clone)]
 pub struct TimersStore {
-    base_dir: PathBuf,
-    cwd: PathBuf,
+    pub state: Automerge,
 }
 
 #[derive(Debug)]
@@ -43,142 +42,75 @@ pub struct TimerInput {
     pub duration: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Diary {
-    entries: Vec<Entry>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Entry {
-    uuid: uuid::Uuid,
-    start: i64,
-    message: String,
-    duration: u64,
-}
-
-impl Entry {
-    pub fn end(&self) -> i64 {
-        self.start + (self.duration as i64)
-    }
-}
-
 impl TimersStore {
-    pub async fn new(base_dir: PathBuf) -> Self {
-        let cwd = base_dir.join("timers");
-        fs::create_dir_all(&cwd).await.unwrap();
-        Self { cwd, base_dir }
+    pub fn new(state: Automerge) -> Self {
+        Self { state }
     }
 
-    pub async fn find_all(&self) -> Vec<Timer> {
+    pub fn find_all(&self) -> Result<Vec<Timer>> {
         let mut v = Vec::new();
-        let mut files = fs::read_dir(&self.cwd).await.unwrap();
 
-        let mut maybe_file = files.next_entry().await.unwrap();
-        while let Some(file) = maybe_file {
-            let filepath = file.path();
-            let content = fs::read_to_string(filepath).await.unwrap();
-            let diary: Diary = toml::from_str(&content).unwrap();
+        let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
 
-            let entry = diary.entries.first().unwrap();
-
-            v.push(Timer {
-                uuid: entry.uuid,
-                start: entry.start,
-                message: entry.message.clone(),
-                duration: entry.duration,
-            });
-
-            maybe_file = files.next_entry().await.unwrap();
-        }
-
-        v
-    }
-
-    pub async fn find_by_uuid(&self, uuid: &uuid::Uuid) -> Option<Timer> {
-        let filename = &self
-            .cwd
-            .join(uuid.to_hyphenated().to_string())
-            .with_extension("toml");
-
-        match fs::read_to_string(filename).await {
-            Ok(content) => {
-                let diary: Diary = toml::from_str(&content).unwrap();
-                let entry = diary.entries.first().unwrap();
-
-                Some(Timer {
-                    uuid: entry.uuid,
-                    start: entry.start,
-                    message: entry.message.clone(),
-                    duration: entry.duration,
-                })
-            }
-            Err(_) => None,
-        }
-    }
-
-    pub async fn delete_by_uuid(&self, uuid: &uuid::Uuid) -> Option<uuid::Uuid> {
-        let filename = &self
-            .cwd
-            .join(uuid.to_hyphenated().to_string())
-            .with_extension("toml");
-
-        match fs::remove_file(filename).await {
-            Ok(_) => Some(*uuid),
-            Err(_) => None,
-        }
-    }
-
-    pub async fn find_active(&self) -> Vec<Timer> {
-        let mut v = Vec::new();
-        let mut files = fs::read_dir(&self.cwd).await.unwrap();
-
-        let mut maybe_file = files.next_entry().await.unwrap();
-        while let Some(file) = maybe_file {
-            let filepath = file.path();
-            let content = fs::read_to_string(filepath).await.unwrap();
-            let diary: Diary = toml::from_str(&content).unwrap();
-
-            let entry = diary.entries.first().unwrap();
-
-            let timer = Timer {
-                uuid: entry.uuid,
-                start: entry.start,
-                message: entry.message.clone(),
-                duration: entry.duration,
+        for (_, _, timer) in self.state.map_range(timers, ..) {
+            let uuid = {
+                let (uuid, _) = self.state.get(&timer, "uuid")?.unwrap();
+                let uuid = uuid.into_string().unwrap();
+                Uuid::from_str(&uuid).unwrap()
             };
-
-            if timer.is_active() {
-                v.push(timer);
-            }
-
-            maybe_file = files.next_entry().await.unwrap();
+            let start = {
+                let (start, _) = self.state.get(&timer, "start")?.unwrap();
+                start.to_i64().unwrap()
+            };
+            let message = {
+                let (message, _) = self.state.get(&timer, "message")?.unwrap();
+                message.to_string()
+            };
+            let duration = {
+                let (duration, _) = self.state.get(&timer, "duration")?.unwrap();
+                duration.to_u64().unwrap()
+            };
+            let timer = Timer {
+                uuid,
+                start,
+                message,
+                duration,
+            };
+            v.push(timer);
         }
 
-        v
+        Ok(v)
     }
 
-    pub async fn create(&self, payload: TimerInput) -> Uuid {
+    pub async fn find_by_uuid(&self, uuid: &uuid::Uuid) -> Result<Option<Timer>> {
+        Ok(None)
+    }
+
+    pub async fn delete_by_uuid(&self, uuid: &uuid::Uuid) -> Result<Option<Uuid>> {
+        Ok(None)
+    }
+
+    pub async fn find_active(&self) -> Result<Vec<Timer>> {
+        Ok(Vec::new())
+    }
+
+    pub async fn create(&mut self, payload: TimerInput) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
-        let filename = self
-            .cwd
-            .join(uuid.to_hyphenated().to_string())
-            .with_extension("toml");
-        let mut file = fs::File::create(&filename)
-            .await
-            .expect("Could not create a record file!");
-        let body = toml::to_string(&Diary {
-            entries: vec![Entry {
-                uuid,
-                start: payload.start,
-                message: payload.message,
-                duration: payload.duration,
-            }],
-        })
-        .unwrap();
-        file.write_all(&body.as_bytes())
-            .await
-            .expect("Could not write to a record file");
-        uuid
+
+        self.state
+            .transact::<_, _, AutomergeError>(|tx| {
+                let (_, timers) = tx.get(ROOT, "timers")?.unwrap();
+                let timer = tx.put_object(timers, uuid.to_string(), automerge::ObjType::Map)?;
+                tx.put(&timer, "uuid", uuid.to_string())?;
+                tx.put(&timer, "start", payload.start)?;
+                tx.put(&timer, "message", payload.message)?;
+                tx.put(&timer, "duration", payload.duration)?;
+                Ok(())
+            })
+            .unwrap()
+            .result;
+
+        Ok(uuid)
     }
 }
 
@@ -188,12 +120,65 @@ pub struct Store {
 }
 
 impl Store {
-    pub async fn new(base_dir: PathBuf, sandbox: String) -> Self {
-        let store_dir = base_dir.join(".store");
-        let with_sandbox = store_dir.join(&sandbox);
+    pub async fn new(base_dir: Option<PathBuf>) -> Result<Self> {
+        let state = match base_dir {
+            // persistence, please
+            Some(base_dir) => {
+                let store_dir = base_dir.join(".store");
+                let store_path = store_dir.join("data.bin");
 
-        Self {
-            timers: TimersStore::new(with_sandbox).await,
-        }
+                fs::create_dir_all(store_dir).await?;
+                let data = fs::read(store_path).await;
+
+                match data {
+                    Ok(data) => match Automerge::load(&data) {
+                        Ok(val) => val,
+                        Err(_) => Store::init(),
+                    },
+                    Err(_) => Store::init(),
+                }
+            }
+            // im-memory only
+            None => Store::init(),
+        };
+
+        Ok(Self {
+            timers: TimersStore::new(state),
+        })
+    }
+
+    fn init() -> Automerge {
+        let mut doc = Automerge::new();
+
+        doc.transact::<_, _, AutomergeError>(|draft| {
+            draft.put_object(ROOT, "timers", automerge::ObjType::Map)?;
+            Ok(())
+        })
+        .expect("could not write the initial state")
+        .result;
+
+        doc
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+    use pretty_assertions::assert_eq;
+
+    #[tokio::test]
+    async fn a01() -> Result<()> {
+        let mut store = Store::new(None).await?;
+        store
+            .timers
+            .create(TimerInput {
+                start: 0,
+                message: "some".into(),
+                duration: 1000,
+            })
+            .await?;
+        assert_eq!(store.timers.find_all()?.len(), 1);
+        Ok(())
     }
 }
