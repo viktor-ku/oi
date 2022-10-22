@@ -11,4 +11,7 @@ install: assets build
 	sudo cp -f target/release/oi /usr/local/bin
 	sudo cp -f target/release/oid /usr/local/bin
 
+uninstall:
+	sudo rm -rf /usr/local/bin/oi /usr/local/bin/oid /usr/share/oi
+
 .PHONY: assets
