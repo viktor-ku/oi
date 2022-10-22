@@ -4,19 +4,21 @@ use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
 use uuid::Uuid;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timer {
-    pub uuid: uuid::Uuid,
+    pub uuid: Uuid,
     pub message: String,
+    /// duration of the timeout in milliseconds
     pub duration: u64,
-    pub start: i64,
+    /// start of the timeout in milliseconds (UTC)
+    pub start: u64,
 }
 
 impl Timer {
     /// Amount of `ms` until the given timer will timeout
     pub fn remaining(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        let end = (self.start as u64) + self.duration;
+        let end = self.start + self.duration;
         if end > now {
             end - now
         } else {
@@ -37,8 +39,10 @@ pub struct TimersStore {
 
 #[derive(Debug)]
 pub struct TimerInput {
-    pub start: i64,
     pub message: String,
+    /// start of the timeout in milliseconds (UTC)
+    pub start: u64,
+    /// duration of the timeout in milliseconds
     pub duration: u64,
 }
 
@@ -60,7 +64,7 @@ impl TimersStore {
             };
             let start = {
                 let (start, _) = self.state.get(&timer, "start")?.unwrap();
-                start.to_i64().unwrap()
+                start.to_u64().unwrap()
             };
             let message = {
                 let (message, _) = self.state.get(&timer, "message")?.unwrap();
@@ -70,28 +74,65 @@ impl TimersStore {
                 let (duration, _) = self.state.get(&timer, "duration")?.unwrap();
                 duration.to_u64().unwrap()
             };
-            let timer = Timer {
+            v.push(Timer {
                 uuid,
                 start,
                 message,
                 duration,
-            };
-            v.push(timer);
+            });
         }
 
         Ok(v)
     }
 
-    pub async fn find_by_uuid(&self, uuid: &uuid::Uuid) -> Result<Option<Timer>> {
+    pub fn find_by_uuid(&self, uuid: &Uuid) -> Result<Option<Timer>> {
         Ok(None)
     }
 
-    pub async fn delete_by_uuid(&self, uuid: &uuid::Uuid) -> Result<Option<Uuid>> {
-        Ok(None)
+    pub fn find_active(&self) -> Result<Vec<Timer>> {
+        let mut v = Vec::new();
+
+        let (_, timers) = self.state.get(ROOT, "timers")?.unwrap();
+
+        for (_, _, timer) in self.state.map_range(timers, ..) {
+            let start = {
+                let (start, _) = self.state.get(&timer, "start")?.unwrap();
+                start.to_u64().unwrap()
+            };
+            let duration = {
+                let (duration, _) = self.state.get(&timer, "duration")?.unwrap();
+                duration.to_u64().unwrap()
+            };
+
+            let now = chrono::Utc::now().timestamp_millis() as _;
+            let end = start + duration;
+
+            if end < now {
+                continue;
+            }
+
+            let uuid = {
+                let (uuid, _) = self.state.get(&timer, "uuid")?.unwrap();
+                let uuid = uuid.into_string().unwrap();
+                Uuid::from_str(&uuid).unwrap()
+            };
+            let message = {
+                let (message, _) = self.state.get(&timer, "message")?.unwrap();
+                message.to_string()
+            };
+            v.push(Timer {
+                uuid,
+                start,
+                message,
+                duration,
+            });
+        }
+
+        Ok(v)
     }
 
-    pub async fn find_active(&self) -> Result<Vec<Timer>> {
-        Ok(Vec::new())
+    pub async fn delete_by_uuid(&self, uuid: &Uuid) -> Result<Option<Uuid>> {
+        Ok(None)
     }
 
     pub async fn create(&mut self, payload: TimerInput) -> Result<Uuid> {
@@ -168,7 +209,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[tokio::test]
-    async fn a01() -> Result<()> {
+    async fn test_find_all() -> Result<()> {
         let mut store = Store::new(None).await?;
         store
             .timers
@@ -179,6 +220,29 @@ mod tests {
             })
             .await?;
         assert_eq!(store.timers.find_all()?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find_active() -> Result<()> {
+        let mut store = Store::new(None).await?;
+        store
+            .timers
+            .create(TimerInput {
+                start: 0,
+                message: "some".into(),
+                duration: 1000,
+            })
+            .await?;
+        store
+            .timers
+            .create(TimerInput {
+                start: chrono::Utc::now().timestamp_millis() as _,
+                message: "sometime in the future".into(),
+                duration: 60_000,
+            })
+            .await?;
+        assert_eq!(store.timers.find_active()?.len(), 1);
         Ok(())
     }
 }
