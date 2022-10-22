@@ -2,7 +2,7 @@
 name = "lib-player"
 version = "0.1.0"
 authors = ["Viktor Kuroljov <viktor@ku.family>"]
-edition = "2021"
+edition = "2018"
 
 [dependencies]
-rodio = "0.16"
+rodio = "0.11"
