@@ -14,4 +14,7 @@ install: assets build
 uninstall:
 	sudo rm -rf /usr/local/bin/oi /usr/local/bin/oid /usr/share/oi
 
+generate-openapi:
+	cargo run --bin oid -- --generate-openapi
+
 .PHONY: assets
