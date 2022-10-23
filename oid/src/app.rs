@@ -1,67 +1,103 @@
 use super::Cli;
-use actix_web::{delete, get, post, web, App, HttpServer};
-use lib_api as api;
+use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::{self as store, Store};
+use lib_store::{self as store, Store, Timer, TimerInput};
 use notify_rust::{Notification, Urgency};
-use std::sync::{Mutex, Arc};
-use store::TimerInput;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
+use utoipa::{openapi, OpenApi};
+use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug)]
-struct ChannelMessage {
+pub struct ChannelMessage {
     remaining: u64,
     timer: String,
 }
 
+#[utoipa::path(
+    responses(
+        (status = 200, description = "List active timers", body = [Timer])
+    )
+)]
 #[get("/timers/active")]
-async fn find_active_timers(
-    store: web::Data<Mutex<Store>>,
-) -> api::timer::FindActiveTimersResponse {
+async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
     let timers = store.lock().unwrap().timers.find_active(None).unwrap();
-
-    api::timer::FindActiveTimersResponse { timers }
+    HttpResponse::Ok().json(timers)
 }
 
-#[get("/timers/{uuid}")]
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Find timer by id (UUID)", body = Timer)
+    )
+)]
+#[get("/timers/{timer_id}")]
 async fn find_by_uuid(
     store: web::Data<Mutex<Store>>,
-    web::Path(uuid): web::Path<uuid::Uuid>,
-) -> api::timer::FindByUuidResponse {
-    api::timer::FindByUuidResponse {
-        timer: store.lock().unwrap().timers.find_by_uuid(&uuid).unwrap(),
-    }
+    timer_id: web::Path<uuid::Uuid>,
+) -> impl Responder {
+    let timer = store
+        .lock()
+        .unwrap()
+        .timers
+        .find_by_uuid(&timer_id)
+        .unwrap();
+    HttpResponse::Ok().json(timer)
 }
 
-#[delete("/timers/{uuid}")]
+#[utoipa::path(
+    responses(
+        (status = 200, description = "Timer deleted successfully"),
+    ),
+    params(
+        ("timer_id", description = "timer UUID")
+    ),
+)]
+#[delete("/timers/{timer_id}")]
 async fn delete_by_uuid(
     store: web::Data<Mutex<Store>>,
-    web::Path(uuid): web::Path<uuid::Uuid>,
-) -> api::timer::DeleteByUuidResponse {
-    api::timer::DeleteByUuidResponse {
-        uuid: match store.lock().unwrap().timers.delete_by_uuid(&uuid).unwrap() {
-            true => Some(uuid.clone()),
-            false => None,
-        },
-    }
+    timer_id: web::Path<uuid::Uuid>,
+) -> impl Responder {
+    store
+        .lock()
+        .unwrap()
+        .timers
+        .delete_by_uuid(&timer_id)
+        .unwrap();
+    HttpResponse::Ok()
 }
 
+#[utoipa::path(
+    responses(
+        (status = 200, description = "List all timers", body = [Timer])
+    )
+)]
 #[get("/timers")]
-async fn find_all_timers(store: web::Data<Mutex<Store>>) -> api::timer::FindAllTimersResponse {
+async fn find_all_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
     let timers = store.lock().unwrap().timers.find_all().unwrap();
-    api::timer::FindAllTimersResponse { timers }
+    HttpResponse::Ok().json(timers)
 }
 
+#[get("/")]
+async fn home() -> impl Responder {
+    "hi"
+}
+
+#[utoipa::path(
+    request_body = TimerInput,
+    responses(
+        (status = 201, description = "Timer created successfully", body = Timer),
+    )
+)]
 #[post("/timer")]
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
     store: web::Data<Mutex<Store>>,
     payload: web::Json<TimerInput>,
-) -> api::timer::CreateTimerResponse {
-    let uuid = store
+) -> impl Responder {
+    let timer = store
         .lock()
         .unwrap()
         .timers
@@ -78,7 +114,7 @@ async fn create_timer(
         .await
         .unwrap();
 
-    api::timer::CreateTimerResponse { uuid }
+    HttpResponse::Ok().json(timer)
 }
 
 async fn run_timer(remaining: u64, timer: String) {
@@ -108,7 +144,7 @@ async fn run_timer(remaining: u64, timer: String) {
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
-    let store = Arc::new(Store::new(Config::config_dir()).await.unwrap());
+    let store = Store::new(Config::config_dir()).await.unwrap();
 
     spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -131,20 +167,37 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
 
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
 
+    #[derive(Debug, OpenApi)]
+    #[openapi(
+        paths(create_timer, find_all_timers, delete_by_uuid, find_active_timers, find_by_uuid),
+        components(schemas(Timer, TimerInput,))
+    )]
+    struct ApiDoc;
+
+    let openapi = ApiDoc::openapi();
+    let store = Arc::new(store);
+
     let mut server = HttpServer::new(move || {
         App::new()
-            .data(Mutex::new(tx.clone()))
-            .data(Mutex::new(store.clone()))
+            .app_data(Mutex::new(tx.clone()))
+            .app_data(Mutex::new(Arc::clone(&store)))
             .service(create_timer)
+            .service(home)
             .service(find_all_timers)
+            .service(delete_by_uuid)
             .service(find_active_timers)
             .service(find_by_uuid)
-            .service(delete_by_uuid)
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/openapi.json", openapi.clone()),
+            )
     });
 
     if let Some(workers) = cli.workers {
         server = server.workers(workers);
     }
+
+    println!("> up and running at: http://{}", bind);
+    println!("> also swagger ui is up at: http://{}/swagger-ui/", bind);
 
     server.bind(&bind)?.run().await
 }

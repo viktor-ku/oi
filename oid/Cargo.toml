@@ -5,14 +5,18 @@ authors = ["Viktor Kuroljov <viktor@ku.family>"]
 edition = "2018"
 
 [dependencies]
-actix-web = "3.0"
+actix-web = "4.2"
 tokio = { version = "1.17", features = ["rt-multi-thread", "sync", "time"] }
 notify-rust = "4"
 structopt = "0.3"
 uuid = { version = "1.2", features = ["serde", "v4"] }
 anyhow = "1.0"
-
+utoipa-swagger-ui = { version = "2.0", features = ["actix-web"] }
 lib-player = { path = "../lib-player" }
 lib-store = { path = "../lib-store" }
-lib-api = { path = "../lib-api" }
 lib-config = { path = "../lib-config" }
+
+[dependencies.utoipa]
+version = "2.2"
+features = ["json", "actix_extras", "debug", "uuid", "openapi_extensions"]
+
