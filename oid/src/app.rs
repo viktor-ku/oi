@@ -82,7 +82,7 @@ async fn create_timer(
 }
 
 async fn run_timer(remaining: u64, timer: String) {
-    time::delay_for(Duration::from_millis(remaining)).await;
+    time::sleep(Duration::from_millis(remaining)).await;
 
     spawn_blocking(move || {
         let config = Config::new();

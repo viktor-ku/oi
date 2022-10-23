@@ -13,10 +13,7 @@ actix-web = "3.0"
 futures = "0.3"
 lib-store = { path = "../lib-store" }
 
-[dev-dependencies.tokio]
-version = "0.2"
-features = ["rt-threaded", "macros"]
-
 [dev-dependencies]
 pretty_assertions = "0.6"
 chrono = "0.4"
+tokio = { version = "1.17", features = ["rt", "macros"] }
