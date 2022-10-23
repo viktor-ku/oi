@@ -1570,12 +1570,13 @@ dependencies = [
  "actix-web",
  "chrono",
  "futures",
+ "lib-store",
  "pretty_assertions 0.6.1",
  "reqwest",
  "serde",
  "serde_json",
  "tokio 0.2.25",
- "uuid 0.8.2",
+ "uuid 1.2.1",
 ]
 
 [[package]]
@@ -1969,7 +1970,7 @@ dependencies = [
  "runic",
  "structopt",
  "tokio 0.2.25",
- "uuid 0.8.2",
+ "uuid 1.2.1",
 ]
 
 [[package]]
@@ -1977,6 +1978,7 @@ name = "oid"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
  "lib-api",
  "lib-config",
  "lib-player",
@@ -1984,7 +1986,7 @@ dependencies = [
  "notify-rust",
  "structopt",
  "tokio 0.2.25",
- "uuid 0.8.2",
+ "uuid 1.2.1",
 ]
 
 [[package]]

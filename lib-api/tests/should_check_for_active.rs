@@ -45,7 +45,7 @@ async fn should_find_active_timer(client: &Client<'_>, uuid: &uuid::Uuid) {
 
     let timer = res.data.unwrap().timer.unwrap();
     assert_eq!(timer.uuid, *uuid, "uuid should match");
-    assert_eq!(timer.is_active(), true, "timer should be active");
+    assert_eq!(timer.is_active(None), true, "timer should be active");
 }
 
 async fn should_find_inactive_timer(client: &Client<'_>, uuid: &uuid::Uuid) {
@@ -61,5 +61,5 @@ async fn should_find_inactive_timer(client: &Client<'_>, uuid: &uuid::Uuid) {
 
     let timer = res.data.unwrap().timer.unwrap();
     assert_eq!(timer.uuid, *uuid, "uuid should match");
-    assert_eq!(timer.is_active(), false, "timer should not be active");
+    assert_eq!(timer.is_active(None), false, "timer should not be active");
 }

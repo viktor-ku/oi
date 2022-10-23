@@ -1,10 +1,11 @@
 use anyhow::Result;
 use automerge::{transaction::Transactable, Automerge, AutomergeError, ObjId, ROOT};
+use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Timer {
     pub uuid: Uuid,
     pub message: String,
@@ -36,7 +37,7 @@ pub struct TimersStore {
     pub state: Automerge,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimerInput {
     pub message: String,
     /// start of the timeout in milliseconds (UTC)
@@ -153,7 +154,7 @@ impl TimersStore {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Store {
     pub timers: TimersStore,
 }

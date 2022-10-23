@@ -1,5 +1,6 @@
 use crate::impl_responder;
 use crate::Response;
+use lib_store::Timer;
 use reqwest::Result;
 use serde::{Deserialize, Serialize};
 
@@ -26,22 +27,6 @@ pub struct DeleteByUuidResponse {
     pub uuid: Option<uuid::Uuid>,
 }
 impl_responder!(DeleteByUuidResponse);
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Timer {
-    pub uuid: uuid::Uuid,
-    pub start: i64,
-    pub duration: u64,
-    pub message: String,
-    pub remaining: u64,
-}
-
-impl Timer {
-    #[inline]
-    pub fn is_active(&self) -> bool {
-        self.remaining > 0
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateTimerInput {

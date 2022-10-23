@@ -50,7 +50,7 @@ impl Cli {
                         Some(_) => {
                             Notification::new()
                                 .summary("timer was deleted")
-                                .body(&props.timer_uuid.to_hyphenated().to_string())
+                                .body(&props.timer_uuid.to_string())
                                 .timeout(2_500)
                                 .show()
                                 .unwrap();
@@ -58,7 +58,7 @@ impl Cli {
                         None => {
                             Notification::new()
                                 .summary("timer was not found")
-                                .body(&props.timer_uuid.to_hyphenated().to_string())
+                                .body(&props.timer_uuid.to_string())
                                 .timeout(2_500)
                                 .urgency(Urgency::Critical)
                                 .show()

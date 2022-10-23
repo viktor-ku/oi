@@ -5,7 +5,8 @@ use lib_config::Config;
 use lib_player::Player;
 use lib_store::{self as store, Store};
 use notify_rust::{Notification, Urgency};
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
+use store::TimerInput;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
@@ -17,83 +18,56 @@ struct ChannelMessage {
 }
 
 #[get("/timers/active")]
-async fn find_active_timers(store: web::Data<Store>) -> api::timer::FindActiveTimersResponse {
-    let timers = store.timers.find_active().await;
-    api::timer::FindActiveTimersResponse {
-        timers: timers
-            .iter()
-            .map(|timer| api::timer::Timer {
-                uuid: timer.uuid,
-                start: timer.start,
-                message: timer.message.clone(),
-                duration: timer.duration,
-                remaining: timer.remaining(),
-            })
-            .collect(),
-    }
+async fn find_active_timers(
+    store: web::Data<Mutex<Store>>,
+) -> api::timer::FindActiveTimersResponse {
+    let timers = store.lock().unwrap().timers.find_active(None).unwrap();
+
+    api::timer::FindActiveTimersResponse { timers }
 }
 
 #[get("/timers/{uuid}")]
 async fn find_by_uuid(
-    store: web::Data<Store>,
+    store: web::Data<Mutex<Store>>,
     web::Path(uuid): web::Path<uuid::Uuid>,
 ) -> api::timer::FindByUuidResponse {
     api::timer::FindByUuidResponse {
-        timer: store
-            .timers
-            .find_by_uuid(&uuid)
-            .await
-            .map(|timer| api::timer::Timer {
-                uuid: timer.uuid,
-                start: timer.start,
-                message: timer.message.clone(),
-                duration: timer.duration,
-                remaining: timer.remaining(),
-            }),
+        timer: store.lock().unwrap().timers.find_by_uuid(&uuid).unwrap(),
     }
 }
 
 #[delete("/timers/{uuid}")]
 async fn delete_by_uuid(
-    store: web::Data<Store>,
+    store: web::Data<Mutex<Store>>,
     web::Path(uuid): web::Path<uuid::Uuid>,
 ) -> api::timer::DeleteByUuidResponse {
     api::timer::DeleteByUuidResponse {
-        uuid: store.timers.delete_by_uuid(&uuid).await,
+        uuid: match store.lock().unwrap().timers.delete_by_uuid(&uuid).unwrap() {
+            true => Some(uuid.clone()),
+            false => None,
+        },
     }
 }
 
 #[get("/timers")]
-async fn find_all_timers(store: web::Data<Store>) -> api::timer::FindAllTimersResponse {
-    let timers = store.timers.find_all().await;
-    api::timer::FindAllTimersResponse {
-        timers: timers
-            .iter()
-            .map(|timer| api::timer::Timer {
-                uuid: timer.uuid,
-                start: timer.start,
-                message: timer.message.clone(),
-                duration: timer.duration,
-                remaining: timer.remaining(),
-            })
-            .collect(),
-    }
+async fn find_all_timers(store: web::Data<Mutex<Store>>) -> api::timer::FindAllTimersResponse {
+    let timers = store.lock().unwrap().timers.find_all().unwrap();
+    api::timer::FindAllTimersResponse { timers }
 }
 
 #[post("/timer")]
 async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
-    store: web::Data<Store>,
-    payload: web::Json<api::timer::CreateTimerInput>,
+    store: web::Data<Mutex<Store>>,
+    payload: web::Json<TimerInput>,
 ) -> api::timer::CreateTimerResponse {
     let uuid = store
+        .lock()
+        .unwrap()
         .timers
-        .create(store::TimerInput {
-            start: payload.start,
-            message: payload.message.clone(),
-            duration: payload.duration,
-        })
-        .await;
+        .create(payload.0.clone())
+        .await
+        .unwrap();
 
     tx.lock()
         .unwrap()
@@ -134,7 +108,7 @@ async fn run_timer(remaining: u64, timer: String) {
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
-    let store = Store::new(Config::config_dir().unwrap(), cli.sandbox).await;
+    let store = Arc::new(Store::new(Config::config_dir()).await.unwrap());
 
     spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -144,11 +118,11 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
         }
     });
 
-    let active_timers = store.timers.find_active().await;
+    let active_timers = store.timers.find_active(None).unwrap();
     for timer in active_timers {
         tx.clone()
             .send(ChannelMessage {
-                remaining: timer.remaining(),
+                remaining: timer.remaining(None),
                 timer: timer.message.clone(),
             })
             .await
@@ -160,7 +134,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     let mut server = HttpServer::new(move || {
         App::new()
             .data(Mutex::new(tx.clone()))
-            .data(store.clone())
+            .data(Mutex::new(store.clone()))
             .service(create_timer)
             .service(find_all_timers)
             .service(find_active_timers)
