@@ -2,13 +2,13 @@ use super::Cli;
 use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::{self as store, Store, Timer, TimerInput};
+use lib_store::{Store, Timer, TimerInput};
 use notify_rust::{Notification, Urgency};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
-use utoipa::{openapi, OpenApi};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug)]
@@ -169,7 +169,13 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
 
     #[derive(Debug, OpenApi)]
     #[openapi(
-        paths(create_timer, find_all_timers, delete_by_uuid, find_active_timers, find_by_uuid),
+        paths(
+            create_timer,
+            find_all_timers,
+            delete_by_uuid,
+            find_active_timers,
+            find_by_uuid
+        ),
         components(schemas(Timer, TimerInput,))
     )]
     struct ApiDoc;
