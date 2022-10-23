@@ -10,6 +10,7 @@ use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use crate::apidoc::ApiDoc;
 
 #[derive(Debug)]
 pub struct ChannelMessage {
@@ -23,7 +24,7 @@ pub struct ChannelMessage {
     )
 )]
 #[get("/timers/active")]
-async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
+pub async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
     let timers = store.lock().unwrap().timers.find_active(None).unwrap();
     HttpResponse::Ok().json(timers)
 }
@@ -34,7 +35,7 @@ async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
     )
 )]
 #[get("/timers/{timer_id}")]
-async fn find_by_uuid(
+pub async fn find_by_uuid(
     store: web::Data<Mutex<Store>>,
     timer_id: web::Path<uuid::Uuid>,
 ) -> impl Responder {
@@ -56,7 +57,7 @@ async fn find_by_uuid(
     ),
 )]
 #[delete("/timers/{timer_id}")]
-async fn delete_by_uuid(
+pub async fn delete_by_uuid(
     store: web::Data<Mutex<Store>>,
     timer_id: web::Path<uuid::Uuid>,
 ) -> impl Responder {
@@ -75,7 +76,7 @@ async fn delete_by_uuid(
     )
 )]
 #[get("/timers")]
-async fn find_all_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
+pub async fn find_all_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
     let timers = store.lock().unwrap().timers.find_all().unwrap();
     HttpResponse::Ok().json(timers)
 }
@@ -92,7 +93,7 @@ async fn home() -> impl Responder {
     )
 )]
 #[post("/timer")]
-async fn create_timer(
+pub async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
     store: web::Data<Mutex<Store>>,
     payload: web::Json<TimerInput>,
@@ -166,19 +167,6 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     }
 
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
-
-    #[derive(Debug, OpenApi)]
-    #[openapi(
-        paths(
-            create_timer,
-            find_all_timers,
-            delete_by_uuid,
-            find_active_timers,
-            find_by_uuid
-        ),
-        components(schemas(Timer, TimerInput,))
-    )]
-    struct ApiDoc;
 
     let openapi = ApiDoc::openapi();
     let store = Arc::new(store);

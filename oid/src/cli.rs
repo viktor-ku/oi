@@ -17,4 +17,7 @@ pub struct Cli {
 
     #[structopt(long)]
     pub workers: Option<usize>,
+
+    #[structopt(long)]
+    pub generate_openapi: bool,
 }
