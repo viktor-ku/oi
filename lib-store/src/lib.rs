@@ -3,8 +3,8 @@ use automerge::{transaction::Transactable, Automerge, AutomergeError, ObjId, ROO
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
-use uuid::Uuid;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
 pub struct Timer {
@@ -109,7 +109,7 @@ impl TimersStore {
         Ok(true)
     }
 
-    pub async fn create(&mut self, payload: TimerInput) -> Result<Uuid> {
+    pub async fn create(&mut self, payload: TimerInput) -> Result<Timer> {
         let uuid = Uuid::new_v4();
 
         self.state
@@ -118,14 +118,19 @@ impl TimersStore {
                 let timer = tx.put_object(timers, uuid.to_string(), automerge::ObjType::Map)?;
                 tx.put(&timer, "uuid", uuid.to_string())?;
                 tx.put(&timer, "start", payload.start)?;
-                tx.put(&timer, "message", payload.message)?;
+                tx.put(&timer, "message", payload.message.clone())?;
                 tx.put(&timer, "duration", payload.duration)?;
                 Ok(())
             })
             .unwrap()
             .result;
 
-        Ok(uuid)
+        Ok(Timer {
+            uuid,
+            start: payload.start,
+            duration: payload.duration,
+            message: payload.message,
+        })
     }
 
     fn try_assemble_timer(&self, id: &ObjId) -> Result<Timer> {

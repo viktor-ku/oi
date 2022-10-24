@@ -1,19 +1,22 @@
 use super::Cli;
-use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
+use crate::apidoc::ApiDoc;
+use actix_web::{
+    delete, get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder,
+};
 use lib_config::Config;
 use lib_player::Player;
 use lib_store::{Store, TimerInput};
 use notify_rust::{Notification, Urgency};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use crate::apidoc::ApiDoc;
 
 #[derive(Debug)]
 pub struct ChannelMessage {
+    /// in milliseconds
     remaining: u64,
     timer: String,
 }
@@ -169,12 +172,15 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
 
     let openapi = ApiDoc::openapi();
-    let store = Arc::new(store);
+
+    let store = web::Data::new(Mutex::new(store));
+    let tx = web::Data::new(Mutex::new(tx));
 
     let mut server = HttpServer::new(move || {
         App::new()
-            .app_data(Mutex::new(tx.clone()))
-            .app_data(Mutex::new(Arc::clone(&store)))
+            .wrap(Logger::default())
+            .app_data(tx.clone())
+            .app_data(store.clone())
             .service(create_timer)
             .service(home)
             .service(find_all_timers)

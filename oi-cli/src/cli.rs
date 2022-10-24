@@ -80,7 +80,7 @@ impl Cli {
             .timers
             .create(&TimerInput {
                 start: now.timestamp_millis() as _,
-                duration: duration as u64,
+                duration: (duration as u64) * 1_000,
                 message: input.to_owned(),
             })
             .await
@@ -94,7 +94,7 @@ impl Cli {
                     .unwrap();
             }
             Err(e) => {
-                eprintln!("Could not connect to a server");
+                eprintln!("{}", bind);
                 eprintln!("{}", e);
             }
         }
