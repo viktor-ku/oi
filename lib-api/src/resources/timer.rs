@@ -1,45 +1,7 @@
-use crate::impl_responder;
-use crate::Response;
 use lib_store::Timer;
+use lib_store::TimerInput;
 use reqwest::Result;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FindAllTimersResponse {
-    pub timers: Vec<Timer>,
-}
-impl_responder!(FindAllTimersResponse);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FindActiveTimersResponse {
-    pub timers: Vec<Timer>,
-}
-impl_responder!(FindActiveTimersResponse);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FindByUuidResponse {
-    pub timer: Option<Timer>,
-}
-impl_responder!(FindByUuidResponse);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DeleteByUuidResponse {
-    pub uuid: Option<uuid::Uuid>,
-}
-impl_responder!(DeleteByUuidResponse);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateTimerInput {
-    pub start: i64,
-    pub duration: u64,
-    pub message: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct CreateTimerResponse {
-    pub uuid: uuid::Uuid,
-}
-impl_responder!(CreateTimerResponse);
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct TimersResource<'resource> {
@@ -55,93 +17,53 @@ impl<'resource> TimersResource<'resource> {
         }
     }
 
-    pub async fn find_active(&self) -> Result<Response<Result<FindActiveTimersResponse>>> {
+    pub async fn find_active(&self) -> Result<Vec<Timer>> {
         let res = self
             .client
             .get(&format!("{}/timers/active", self.url))
             .send()
-            .await;
+            .await?;
 
-        match res {
-            Ok(res) => Ok(Response {
-                status: res.status().as_u16(),
-                data: res.json().await,
-            }),
-            Err(e) => Err(e),
-        }
+        res.json().await
     }
 
-    pub async fn find_all(&self) -> Result<Response<Result<FindAllTimersResponse>>> {
+    pub async fn find_all(&self) -> Result<Vec<Timer>> {
         let res = self
             .client
             .get(&format!("{}/timers", self.url))
             .send()
-            .await;
+            .await?;
 
-        match res {
-            Ok(res) => Ok(Response {
-                status: res.status().as_u16(),
-                data: res.json().await,
-            }),
-            Err(e) => Err(e),
-        }
+        res.json().await
     }
 
-    pub async fn find_by_uuid(
-        &self,
-        uuid: &uuid::Uuid,
-    ) -> Result<Response<Result<FindByUuidResponse>>> {
+    pub async fn find_by_uuid(&self, uuid: &Uuid) -> Result<Option<Timer>> {
         let res = self
             .client
             .get(&format!("{}/timers/{}", self.url, uuid))
             .send()
-            .await;
+            .await?;
 
-        match res {
-            Ok(res) => Ok(Response {
-                status: res.status().as_u16(),
-                data: res.json().await,
-            }),
-            Err(e) => Err(e),
-        }
+        res.json().await
     }
 
-    pub async fn delete_by_uuid(
-        &self,
-        uuid: &uuid::Uuid,
-    ) -> Result<Response<Result<DeleteByUuidResponse>>> {
-        let res = self
-            .client
+    pub async fn delete_by_uuid(&self, uuid: &Uuid) -> Result<()> {
+        self.client
             .delete(&format!("{}/timers/{}", self.url, uuid))
             .send()
-            .await;
+            .await?;
 
-        match res {
-            Ok(res) => Ok(Response {
-                status: res.status().as_u16(),
-                data: res.json().await,
-            }),
-            Err(e) => Err(e),
-        }
+        Ok(())
     }
 
-    pub async fn create(
-        &self,
-        body: &CreateTimerInput,
-    ) -> Result<Response<Result<CreateTimerResponse>>> {
+    pub async fn create(&self, body: &TimerInput) -> Result<Timer> {
         let res = self
             .client
             .post(&format!("{}/timer", self.url))
             .json(body)
             .send()
-            .await;
+            .await?;
 
-        match res {
-            Ok(res) => Ok(Response {
-                status: res.status().as_u16(),
-                data: res.json().await,
-            }),
-            Err(e) => Err(e),
-        }
+        res.json().await
     }
 }

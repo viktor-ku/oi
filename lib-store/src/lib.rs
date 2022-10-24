@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 use tokio::fs;
 use uuid::Uuid;
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
 pub struct Timer {
     pub uuid: Uuid,
     pub message: String,
@@ -37,7 +38,7 @@ pub struct TimersStore {
     pub state: Automerge,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct TimerInput {
     pub message: String,
     /// start of the timeout in milliseconds (UTC)

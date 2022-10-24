@@ -1,7 +1,8 @@
 use chrono::Utc;
-use lib_api::{self as api, Client};
+use lib_api::Client;
 use lib_config::Config;
-use notify_rust::{Notification, Urgency};
+use lib_store::TimerInput;
+use notify_rust::Notification;
 use runic::Runic;
 use structopt::StructOpt;
 
@@ -44,28 +45,13 @@ impl Cli {
         let client = Client::new(&bind);
 
         match client.timers.delete_by_uuid(&props.timer_uuid).await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    match response.data.unwrap().uuid {
-                        Some(_) => {
-                            Notification::new()
-                                .summary("timer was deleted")
-                                .body(&props.timer_uuid.to_string())
-                                .timeout(2_500)
-                                .show()
-                                .unwrap();
-                        }
-                        None => {
-                            Notification::new()
-                                .summary("timer was not found")
-                                .body(&props.timer_uuid.to_string())
-                                .timeout(2_500)
-                                .urgency(Urgency::Critical)
-                                .show()
-                                .unwrap();
-                        }
-                    }
-                }
+            Ok(_) => {
+                Notification::new()
+                    .summary("timer was deleted")
+                    .body(&props.timer_uuid.to_string())
+                    .timeout(2_500)
+                    .show()
+                    .unwrap();
             }
             Err(e) => {
                 eprintln!("Could not connect to a server");
@@ -92,22 +78,20 @@ impl Cli {
 
         match client
             .timers
-            .create(&api::timer::CreateTimerInput {
-                start: now.timestamp_millis(),
+            .create(&TimerInput {
+                start: now.timestamp_millis() as _,
                 duration: duration as u64,
                 message: input.to_owned(),
             })
             .await
         {
-            Ok(response) => {
-                if response.status().is_success() {
-                    Notification::new()
-                        .summary("timer is now running")
-                        .body(&body)
-                        .timeout(2_500)
-                        .show()
-                        .unwrap();
-                }
+            Ok(_) => {
+                Notification::new()
+                    .summary("timer is now running")
+                    .body(&body)
+                    .timeout(2_500)
+                    .show()
+                    .unwrap();
             }
             Err(e) => {
                 eprintln!("Could not connect to a server");

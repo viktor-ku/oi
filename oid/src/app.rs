@@ -2,7 +2,7 @@ use super::Cli;
 use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::{Store, Timer, TimerInput};
+use lib_store::{Store, TimerInput};
 use notify_rust::{Notification, Urgency};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
