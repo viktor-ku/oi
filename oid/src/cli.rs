@@ -15,8 +15,8 @@ pub struct Cli {
     #[structopt(long)]
     pub port: Option<u32>,
 
-    #[structopt(long)]
-    pub workers: Option<usize>,
+    #[structopt(long, default_value = "1")]
+    pub workers: usize,
 
     #[structopt(long)]
     pub generate_openapi: bool,

@@ -150,14 +150,6 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
     let store = Store::new(Config::config_dir()).await.unwrap();
 
-    spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            spawn(async move {
-                run_timer(msg.remaining as u64, msg.timer).await;
-            });
-        }
-    });
-
     let active_timers = store.timers.find_active(None).unwrap();
     for timer in active_timers {
         tx.clone()
@@ -169,10 +161,15 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .unwrap();
     }
 
-    let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
+    spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            spawn(async move {
+                run_timer(msg.remaining as u64, msg.timer).await;
+            });
+        }
+    });
 
     let openapi = ApiDoc::openapi();
-
     let store = web::Data::new(Mutex::new(store));
     let tx = web::Data::new(Mutex::new(tx));
 
@@ -192,12 +189,14 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             )
     });
 
-    if let Some(workers) = cli.workers {
-        server = server.workers(workers);
+    if cli.workers > 0 {
+        server = server.workers(cli.workers);
     }
 
+    let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
+    server = server.bind(&bind)?;
     println!("> up and running at: http://{}", bind);
     println!("> also swagger ui is up at: http://{}/swagger-ui/", bind);
 
-    server.bind(&bind)?.run().await
+    server.run().await
 }
