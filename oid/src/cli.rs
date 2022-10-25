@@ -6,7 +6,7 @@ pub struct Cli {
     #[structopt(long, default_value = "default")]
     pub sandbox: String,
 
-    #[structopt(long)]
+    #[structopt(long, short)]
     pub detach: bool,
 
     #[structopt(long)]
