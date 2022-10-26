@@ -5,7 +5,9 @@ use std::io::{Error, ErrorKind, Result};
 use std::process::Command;
 
 pub fn detach(cli: &Cli) -> Result<()> {
-    let args: Vec<String> = args().filter(|arg| arg != "--detach").collect();
+    let args: Vec<String> = args()
+        .filter(|arg| arg != "--detach" && arg != "-d")
+        .collect();
 
     let mut cmd = Command::new(args.first().unwrap());
     cmd.args(&args[1..]);
