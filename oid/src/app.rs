@@ -121,8 +121,10 @@ pub async fn create_timer(
     HttpResponse::Ok().json(timer)
 }
 
-async fn run_timer(remaining: u64, timer: String) {
-    time::sleep(Duration::from_millis(remaining)).await;
+async fn run_timer(remaining: u64, timer: String, latency: u64) {
+    let duration = remaining.checked_sub(latency).unwrap_or(0);
+
+    time::sleep(Duration::from_millis(duration)).await;
 
     spawn_blocking(move || {
         let config = Config::new();
@@ -147,6 +149,7 @@ async fn run_timer(remaining: u64, timer: String) {
 }
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
+    let latency = cli.latency as u64;
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
     let store = Store::new(Config::config_dir()).await.unwrap();
 
@@ -164,7 +167,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     spawn(async move {
         while let Some(msg) = rx.recv().await {
             spawn(async move {
-                run_timer(msg.remaining as u64, msg.timer).await;
+                run_timer(msg.remaining, msg.timer, latency).await;
             });
         }
     });

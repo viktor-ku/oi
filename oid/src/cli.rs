@@ -20,4 +20,9 @@ pub struct Cli {
 
     #[structopt(long)]
     pub generate_openapi: bool,
+
+    /// Fire an expected event this amount
+    /// of milliseconds earlier than specified duration.
+    #[structopt(long, default_value = "0")]
+    pub latency: usize,
 }
