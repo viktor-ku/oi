@@ -7,8 +7,8 @@ use utoipa::OpenApi;
 
 mod detach;
 
-pub mod app;
 pub mod apidoc;
+pub mod app;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
