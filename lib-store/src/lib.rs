@@ -166,26 +166,31 @@ pub struct Store {
 }
 
 impl Store {
-    pub async fn new(base_dir: Option<PathBuf>) -> Result<Self> {
-        let state = match base_dir {
-            // persistence, please
-            Some(base_dir) => {
-                let store_dir = base_dir.join(".store");
-                let store_path = store_dir.join("data.bin");
+    pub async fn new(root: Option<PathBuf>) -> Result<Self> {
+        match root {
+            Some(root) => Store::persist(root).await,
+            None => Ok(Store::in_memory()),
+        }
+    }
 
-                fs::create_dir_all(store_dir).await?;
-                let data = fs::read(store_path).await;
+    pub fn in_memory() -> Self {
+        Self {
+            timers: TimersStore::new(Store::init()),
+        }
+    }
 
-                match data {
-                    Ok(data) => match Automerge::load(&data) {
-                        Ok(val) => val,
-                        Err(_) => Store::init(),
-                    },
-                    Err(_) => Store::init(),
-                }
-            }
-            // im-memory only
-            None => Store::init(),
+    pub async fn persist(root: PathBuf) -> Result<Self> {
+        let dir = root.join(".store");
+        let path = dir.join("data.bin");
+
+        fs::create_dir_all(dir).await?;
+
+        let state = match fs::read(&path).await {
+            Ok(data) => match Automerge::load(&data) {
+                Ok(val) => val,
+                Err(_) => Store::init(),
+            },
+            Err(_) => Store::init(),
         };
 
         Ok(Self {
