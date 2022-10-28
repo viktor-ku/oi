@@ -5,7 +5,7 @@ use actix_web::{
 };
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::{Store, TimerInput};
+use lib_store::{State, TimerInput, TimersStore, Timer};
 use notify_rust::{Notification, Urgency};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
@@ -27,8 +27,10 @@ pub struct ChannelMessage {
     )
 )]
 #[get("/timers/active")]
-pub async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
-    let timers = store.lock().unwrap().timers.find_active(None).unwrap();
+pub async fn find_active_timers(state: web::Data<Mutex<State>>) -> impl Responder {
+    let mut state = state.try_lock().unwrap();
+    let store = TimersStore::new(&mut state);
+    let timers = store.find_active(None).unwrap();
     HttpResponse::Ok().json(timers)
 }
 
@@ -39,15 +41,12 @@ pub async fn find_active_timers(store: web::Data<Mutex<Store>>) -> impl Responde
 )]
 #[get("/timers/{timer_id}")]
 pub async fn find_by_uuid(
-    store: web::Data<Mutex<Store>>,
+    state: web::Data<Mutex<State>>,
     timer_id: web::Path<uuid::Uuid>,
 ) -> impl Responder {
-    let timer = store
-        .lock()
-        .unwrap()
-        .timers
-        .find_by_uuid(&timer_id)
-        .unwrap();
+    let mut state = state.try_lock().unwrap();
+    let store = TimersStore::new(&mut state);
+    let timer = store.find_by_uuid(&timer_id).unwrap();
     HttpResponse::Ok().json(timer)
 }
 
@@ -61,15 +60,12 @@ pub async fn find_by_uuid(
 )]
 #[delete("/timers/{timer_id}")]
 pub async fn delete_by_uuid(
-    store: web::Data<Mutex<Store>>,
+    state: web::Data<Mutex<State>>,
     timer_id: web::Path<uuid::Uuid>,
 ) -> impl Responder {
-    store
-        .lock()
-        .unwrap()
-        .timers
-        .delete_by_uuid(&timer_id)
-        .unwrap();
+    let mut state = state.try_lock().unwrap();
+    let mut store = TimersStore::new(&mut state);
+    store.delete_by_uuid(&timer_id).unwrap();
     HttpResponse::Ok()
 }
 
@@ -79,8 +75,10 @@ pub async fn delete_by_uuid(
     )
 )]
 #[get("/timers")]
-pub async fn find_all_timers(store: web::Data<Mutex<Store>>) -> impl Responder {
-    let timers = store.lock().unwrap().timers.find_all().unwrap();
+pub async fn find_all_timers(state: web::Data<Mutex<State>>) -> impl Responder {
+    let mut state = state.try_lock().unwrap();
+    let store = TimersStore::new(&mut state);
+    let timers = store.find_all().unwrap();
     HttpResponse::Ok().json(timers)
 }
 
@@ -98,16 +96,14 @@ async fn home() -> impl Responder {
 #[post("/timer")]
 pub async fn create_timer(
     tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
-    store: web::Data<Mutex<Store>>,
+    state: web::Data<Mutex<State>>,
     payload: web::Json<TimerInput>,
 ) -> impl Responder {
-    let timer = store
-        .lock()
-        .unwrap()
-        .timers
-        .create(payload.0.clone())
-        .await
-        .unwrap();
+    let timer: Timer = {
+        let mut state = state.try_lock().unwrap();
+        let mut store = TimersStore::new(&mut state);
+        store.create(payload.0.clone()).await.unwrap()
+    };
 
     tx.lock()
         .unwrap()
@@ -149,11 +145,23 @@ async fn run_timer(remaining: u64, timer: String, latency: u64) {
 }
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
-    let latency = cli.latency as u64;
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
-    let store = Store::new(Config::config_dir()).await.unwrap();
+    let latency = cli.latency as u64;
 
-    let active_timers = store.timers.find_active(None).unwrap();
+    spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            spawn(async move {
+                run_timer(msg.remaining, msg.timer, latency).await;
+            });
+        }
+    });
+
+    let mut state = State::new(Config::config_dir())
+        .await
+        .expect("could not init state");
+
+    let timers_store = TimersStore::new(&mut state);
+    let active_timers = timers_store.find_active(None).unwrap();
     for timer in active_timers {
         tx.clone()
             .send(ChannelMessage {
@@ -164,23 +172,15 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .unwrap();
     }
 
-    spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            spawn(async move {
-                run_timer(msg.remaining, msg.timer, latency).await;
-            });
-        }
-    });
-
     let openapi = ApiDoc::openapi();
-    let store = web::Data::new(Mutex::new(store));
     let tx = web::Data::new(Mutex::new(tx));
+    let state = web::Data::new(Mutex::new(state));
 
     let mut server = HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .app_data(tx.clone())
-            .app_data(store.clone())
+            .app_data(state.clone())
             .service(create_timer)
             .service(home)
             .service(find_all_timers)
