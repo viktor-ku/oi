@@ -5,7 +5,7 @@ use actix_web::{
 };
 use lib_config::Config;
 use lib_player::Player;
-use lib_store::{State, TimerInput, TimersStore, Timer};
+use lib_store::{State, Timer, TimerInput, TimersStore};
 use notify_rust::{Notification, Urgency};
 use std::sync::Mutex;
 use tokio::sync::mpsc;
@@ -145,10 +145,12 @@ async fn run_timer(remaining: u64, timer: String, latency: u64) {
 }
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
+    println!("starting up...");
     let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
     let latency = cli.latency as u64;
 
     spawn(async move {
+        println!("awaiting for incoming timers...");
         while let Some(msg) = rx.recv().await {
             spawn(async move {
                 run_timer(msg.remaining, msg.timer, latency).await;
@@ -162,6 +164,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
 
     let timers_store = TimersStore::new(&mut state);
     let active_timers = timers_store.find_active(None).unwrap();
+    println!("found {} sleeping timers", active_timers.len());
     for timer in active_timers {
         tx.clone()
             .send(ChannelMessage {
@@ -192,8 +195,16 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             )
     });
 
-    if cli.workers > 0 {
-        server = server.workers(cli.workers);
+    {
+        if cli.workers > 0 {
+            server = server.workers(cli.workers);
+        }
+
+        let workers = cli.workers.to_string();
+        println!(
+            "spinning up workers ({})",
+            if cli.workers == 0 { "auto" } else { &workers }
+        );
     }
 
     let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
