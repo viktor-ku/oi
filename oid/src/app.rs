@@ -1,5 +1,6 @@
 use super::Cli;
 use crate::apidoc::ApiDoc;
+use crate::message::OidMessage;
 use actix_web::{
     delete, get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder,
 };
@@ -13,13 +14,6 @@ use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
-#[derive(Debug)]
-pub struct ChannelMessage {
-    /// in milliseconds
-    remaining: u64,
-    timer: String,
-}
 
 #[utoipa::path(
     responses(
@@ -95,7 +89,7 @@ async fn home() -> impl Responder {
 )]
 #[post("/timer")]
 pub async fn create_timer(
-    tx: web::Data<Mutex<mpsc::Sender<ChannelMessage>>>,
+    tx: web::Data<Mutex<mpsc::Sender<OidMessage>>>,
     state: web::Data<Mutex<State>>,
     payload: web::Json<TimerInput>,
 ) -> impl Responder {
@@ -107,18 +101,15 @@ pub async fn create_timer(
 
     tx.lock()
         .unwrap()
-        .send(ChannelMessage {
-            remaining: payload.duration,
-            timer: payload.message.clone(),
-        })
+        .send(OidMessage::StartTimer(timer.clone()))
         .await
         .unwrap();
 
     HttpResponse::Ok().json(timer)
 }
 
-async fn run_timer(remaining: u64, timer: String, latency: u64) {
-    let duration = remaining.checked_sub(latency).unwrap_or(0);
+async fn run_timer(timer: Timer, latency: u64) {
+    let duration = timer.remaining(None).checked_sub(latency).unwrap_or(0);
 
     time::sleep(Duration::from_millis(duration)).await;
 
@@ -127,7 +118,7 @@ async fn run_timer(remaining: u64, timer: String, latency: u64) {
 
         Notification::new()
             .summary("oi")
-            .body(&timer)
+            .body(&timer.message)
             .timeout(10_000)
             .urgency(Urgency::Critical)
             .show()
@@ -146,33 +137,35 @@ async fn run_timer(remaining: u64, timer: String, latency: u64) {
 
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     println!("starting up...");
-    let (tx, mut rx) = mpsc::channel::<ChannelMessage>(32);
+    let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
     let latency = cli.latency as u64;
-
-    spawn(async move {
-        println!("awaiting for incoming timers...");
-        while let Some(msg) = rx.recv().await {
-            spawn(async move {
-                run_timer(msg.remaining, msg.timer, latency).await;
-            });
-        }
-    });
 
     let mut state = State::new(Config::config_dir())
         .await
         .expect("could not init state");
 
+    spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            spawn(async move {
+                match msg {
+                    OidMessage::StartTimer(timer) => {
+                        run_timer(timer, latency).await;
+                    }
+                    OidMessage::Save => {
+                        todo!()
+                    }
+                };
+            });
+        }
+    });
+
     let timers_store = TimersStore::new(&mut state);
     let active_timers = timers_store.find_active(None).unwrap();
     println!("found {} sleeping timers", active_timers.len());
-    for timer in active_timers {
-        tx.clone()
-            .send(ChannelMessage {
-                remaining: timer.remaining(None),
-                timer: timer.message.clone(),
-            })
-            .await
-            .unwrap();
+    {
+        for timer in active_timers {
+            tx.send(OidMessage::StartTimer(timer)).await.unwrap();
+        }
     }
 
     let openapi = ApiDoc::openapi();
