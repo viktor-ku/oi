@@ -44,7 +44,7 @@ pub struct TimerInput {
 
 /// Even though it has "store" in its name, really this
 /// is just a bunch of convenience functions that operate on
-/// some given state. It should store bare minimum, as I'd 
+/// some given state. It should store bare minimum, as I'd
 /// like to construct a bunch of these where needed with
 /// minimum implications. Note, that it has no idea how this
 /// state got here, maybe it was just constructed and passed,
@@ -104,7 +104,8 @@ impl<'store> TimersStore<'store> {
     }
 
     pub fn delete_by_uuid(&mut self, uuid: &Uuid) -> Result<bool> {
-        self.state.0
+        self.state
+            .0
             .transact::<_, _, AutomergeError>(|tx| {
                 let (_, timers) = tx.get(ROOT, "timers")?.unwrap();
                 tx.delete(timers, uuid.to_string())?;
@@ -116,10 +117,11 @@ impl<'store> TimersStore<'store> {
         Ok(true)
     }
 
-    pub async fn create(&mut self, payload: TimerInput) -> Result<Timer> {
+    pub fn create(&mut self, payload: TimerInput) -> Result<Timer> {
         let uuid = Uuid::new_v4();
 
-        self.state.0
+        self.state
+            .0
             .transact::<_, _, AutomergeError>(|tx| {
                 let (_, timers) = tx.get(ROOT, "timers")?.unwrap();
                 let timer = tx.put_object(timers, uuid.to_string(), automerge::ObjType::Map)?;
@@ -220,59 +222,51 @@ mod tests {
     use anyhow::Result;
     use pretty_assertions::assert_eq;
 
-    #[tokio::test]
-    async fn test_find_all() -> Result<()> {
-        let mut state = State::new(None).await?;
+    #[test]
+    fn test_find_all() -> Result<()> {
+        let mut state = State::in_memory();
         let mut store = TimersStore::new(&mut state);
 
-        store
-            .create(TimerInput {
-                start: 0,
-                message: "some".into(),
-                duration: 1000,
-            })
-            .await?;
+        store.create(TimerInput {
+            start: 0,
+            message: "some".into(),
+            duration: 1000,
+        })?;
 
         assert_eq!(store.find_all()?.len(), 1);
 
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_find_active() -> Result<()> {
-        let mut state = State::new(None).await?;
+    #[test]
+    fn test_find_active() -> Result<()> {
+        let mut state = State::in_memory();
         let mut store = TimersStore::new(&mut state);
 
-        store
-            .create(TimerInput {
-                start: 0,
-                message: "some".into(),
-                duration: 1000,
-            })
-            .await?;
-        store
-            .create(TimerInput {
-                start: chrono::Utc::now().timestamp_millis() as _,
-                message: "sometime in the future".into(),
-                duration: 60_000,
-            })
-            .await?;
+        store.create(TimerInput {
+            start: 0,
+            message: "some".into(),
+            duration: 1000,
+        })?;
+        store.create(TimerInput {
+            start: chrono::Utc::now().timestamp_millis() as _,
+            message: "sometime in the future".into(),
+            duration: 60_000,
+        })?;
         assert_eq!(store.find_active(None)?.len(), 1);
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_find_by_uuid() -> Result<()> {
-        let mut state = State::new(None).await?;
+    #[test]
+    fn test_find_by_uuid() -> Result<()> {
+        let mut state = State::in_memory();
         let mut store = TimersStore::new(&mut state);
 
-        let timer = store
-            .create(TimerInput {
-                start: 0,
-                message: "some".into(),
-                duration: 1000,
-            })
-            .await?;
+        let timer = store.create(TimerInput {
+            start: 0,
+            message: "some".into(),
+            duration: 1000,
+        })?;
         assert_eq!(
             store.find_by_uuid(&timer.uuid)?,
             Some(Timer {
@@ -286,18 +280,16 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_delete() -> Result<()> {
-        let mut state = State::new(None).await?;
+    #[test]
+    fn test_delete() -> Result<()> {
+        let mut state = State::in_memory();
         let mut store = TimersStore::new(&mut state);
 
-        let timer = store
-            .create(TimerInput {
-                start: 0,
-                message: "some".into(),
-                duration: 1000,
-            })
-            .await?;
+        let timer = store.create(TimerInput {
+            start: 0,
+            message: "some".into(),
+            duration: 1000,
+        })?;
 
         assert_eq!(store.find_all()?.len(), 1);
 

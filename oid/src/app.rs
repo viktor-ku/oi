@@ -102,7 +102,7 @@ pub async fn create_timer(
     let timer: Timer = {
         let mut state = state.try_lock().unwrap();
         let mut store = TimersStore::new(&mut state);
-        store.create(payload.0.clone()).await.unwrap()
+        store.create(payload.0.clone()).unwrap()
     };
 
     tx.lock()
