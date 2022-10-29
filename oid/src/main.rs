@@ -6,6 +6,7 @@ use cli::Cli;
 use utoipa::OpenApi;
 
 mod detach;
+mod message;
 
 pub mod apidoc;
 pub mod app;
