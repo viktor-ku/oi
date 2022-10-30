@@ -9,6 +9,9 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 pub struct RunProps {
     pub timer: String,
+
+    #[structopt(long)]
+    pub json: bool,
 }
 
 #[derive(Debug, StructOpt)]
@@ -85,13 +88,17 @@ impl Cli {
             })
             .await
         {
-            Ok(_) => {
+            Ok(timer) => {
                 Notification::new()
                     .summary("timer is now running")
                     .body(&body)
                     .timeout(2_500)
                     .show()
                     .unwrap();
+
+                if props.json {
+                    println!("{}", serde_json::to_string_pretty(&timer).unwrap());
+                }
             }
             Err(e) => {
                 eprintln!("{}", bind);

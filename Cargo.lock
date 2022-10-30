@@ -1652,6 +1652,8 @@ dependencies = [
  "lib-store",
  "notify-rust",
  "runic",
+ "serde",
+ "serde_json",
  "structopt",
  "tokio",
  "uuid 1.2.1",
