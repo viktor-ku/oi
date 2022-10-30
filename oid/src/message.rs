@@ -3,5 +3,5 @@ use lib_store::Timer;
 #[derive(Debug)]
 pub enum OidMessage {
     StartTimer(Timer),
-    Save,
+    Save(Vec<u8>),
 }

@@ -202,6 +202,13 @@ impl State {
         Ok(Self(state))
     }
 
+    pub async fn save(&mut self, root: PathBuf) -> Result<()> {
+        let path = root.join(".store").join("data.bin");
+        let buf = self.0.save();
+        fs::write(path, buf).await.unwrap();
+        Ok(())
+    }
+
     fn init() -> Automerge {
         let mut doc = Automerge::new();
 

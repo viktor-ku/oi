@@ -4,11 +4,14 @@ use crate::message::OidMessage;
 use actix_web::{
     delete, get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder,
 };
+use anyhow::Ok;
 use lib_config::Config;
 use lib_player::Player;
 use lib_store::{State, Timer, TimerInput, TimersStore};
 use notify_rust::{Notification, Urgency};
+use std::path::PathBuf;
 use std::sync::Mutex;
+use tokio::join;
 use tokio::sync::mpsc;
 use tokio::task::{spawn, spawn_blocking};
 use tokio::time::{self, Duration};
@@ -93,17 +96,23 @@ pub async fn create_timer(
     state: web::Data<Mutex<State>>,
     payload: web::Json<TimerInput>,
 ) -> impl Responder {
-    let timer: Timer = {
+    let (timer, saved): (Timer, Vec<u8>) = {
         let mut state = state.try_lock().unwrap();
         let mut store = TimersStore::new(&mut state);
-        store.create(payload.0.clone()).unwrap()
+        let timer = store.create(payload.0.clone()).unwrap();
+        let saved = state.0.save_incremental();
+        (timer, saved)
     };
 
-    tx.lock()
-        .unwrap()
-        .send(OidMessage::StartTimer(timer.clone()))
-        .await
-        .unwrap();
+    {
+        let tx = tx.try_lock().unwrap();
+        let res = join!(
+            tx.send(OidMessage::Save(saved)),
+            tx.send(OidMessage::StartTimer(timer.clone())),
+        );
+        res.0.unwrap();
+        res.1.unwrap();
+    };
 
     HttpResponse::Ok().json(timer)
 }
@@ -135,38 +144,48 @@ async fn run_timer(timer: Timer, latency: u64) {
     .unwrap();
 }
 
+async fn save(root: Option<PathBuf>, changes: &[u8]) -> anyhow::Result<()> {
+    if let Some(ref root) = root {
+        let mut last = State::persist(root.to_path_buf()).await?;
+        last.0.load_incremental(changes).unwrap();
+        last.save(root.to_path_buf()).await.unwrap();
+    }
+
+    Ok(())
+}
+
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     println!("starting up...");
-    let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
     let latency = cli.latency as u64;
-
-    let mut state = State::new(Config::config_dir())
-        .await
-        .expect("could not init state");
+    let root = Config::config_dir();
+    let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
 
     spawn(async move {
         while let Some(msg) = rx.recv().await {
+            let root = root.clone();
             spawn(async move {
                 match msg {
                     OidMessage::StartTimer(timer) => {
                         run_timer(timer, latency).await;
                     }
-                    OidMessage::Save => {
-                        todo!()
-                    }
+                    OidMessage::Save(changes) => save(root, &changes).await.unwrap(),
                 };
             });
         }
     });
 
-    let timers_store = TimersStore::new(&mut state);
-    let active_timers = timers_store.find_active(None).unwrap();
-    println!("found {} sleeping timers", active_timers.len());
+    let mut state = State::new(Config::config_dir())
+        .await
+        .expect("could not init state");
+
     {
+        let timers_store = TimersStore::new(&mut state);
+        let active_timers = timers_store.find_active(None).unwrap();
+        println!("found {} sleeping timers", active_timers.len());
         for timer in active_timers {
             tx.send(OidMessage::StartTimer(timer)).await.unwrap();
         }
-    }
+    };
 
     let openapi = ApiDoc::openapi();
     let tx = web::Data::new(Mutex::new(tx));
