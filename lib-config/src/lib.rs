@@ -9,7 +9,7 @@ use on_timeout::OnTimeout;
 mod norm_path;
 use norm_path::norm_path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub port: u32,
     pub volume: f32,

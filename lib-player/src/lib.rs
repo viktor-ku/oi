@@ -17,7 +17,7 @@ impl Player {
     }
 
     /// Play a sound provided by the `path` synchronously
-    pub fn play(&self, path: &PathBuf) {
+    pub fn play(&self, path: PathBuf) {
         let file = File::open(path).unwrap();
         let source = Decoder::new(BufReader::new(file)).unwrap();
 

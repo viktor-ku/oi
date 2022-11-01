@@ -2,7 +2,7 @@ use super::norm_path;
 use serde_yaml::Value;
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OnTimeout {
     pub play: Option<PathBuf>,
 }

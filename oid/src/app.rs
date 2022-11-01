@@ -117,31 +117,39 @@ pub async fn create_timer(
     HttpResponse::Ok().json(timer)
 }
 
-async fn run_timer(timer: Timer, latency: u64) {
-    let duration = timer.remaining(None).checked_sub(latency).unwrap_or(0);
+pub struct OiTask {
+    pub timer: Timer,
+    pub latency: u64,
+    pub play_sound: Option<PathBuf>,
+}
 
-    time::sleep(Duration::from_millis(duration)).await;
+impl OiTask {
+    pub async fn run_timer(self) {
+        let duration = self
+            .timer
+            .remaining(None)
+            .checked_sub(self.latency)
+            .unwrap_or(0);
 
-    spawn_blocking(move || {
-        let config = Config::new();
+        time::sleep(Duration::from_millis(duration)).await;
 
         Notification::new()
             .summary("oi")
-            .body(&timer.message)
+            .body(&self.timer.message)
             .timeout(10_000)
             .urgency(Urgency::Critical)
             .show()
             .unwrap();
 
-        if let Some(sound_path) = &config.on_timeout.play {
-            if sound_path.is_file() {
-                let player = Player::new(config.volume);
-                player.play(&sound_path);
-            }
+        if let Some(play_sound) = self.play_sound {
+            spawn_blocking(move || {
+                let player = Player::new(1.0);
+                player.play(play_sound.to_path_buf());
+            })
+            .await
+            .unwrap();
         }
-    })
-    .await
-    .unwrap();
+    }
 }
 
 async fn save(root: Option<PathBuf>, changes: &[u8]) -> anyhow::Result<()> {
@@ -157,24 +165,32 @@ async fn save(root: Option<PathBuf>, changes: &[u8]) -> anyhow::Result<()> {
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     println!("starting up...");
     let latency = cli.latency as u64;
-    let root = Config::config_dir();
+    let config = Config::new();
+    let base_dir = Config::config_dir();
     let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
 
     spawn(async move {
         while let Some(msg) = rx.recv().await {
-            let root = root.clone();
             spawn(async move {
                 match msg {
                     OidMessage::StartTimer(timer) => {
-                        run_timer(timer, latency).await;
+                        OiTask {
+                            timer,
+                            latency,
+                            play_sound: Config::new().on_timeout.play,
+                        }
+                        .run_timer()
+                        .await;
                     }
-                    OidMessage::Save(changes) => save(root, &changes).await.unwrap(),
+                    OidMessage::Save(changes) => {
+                        save(Config::config_dir(), &changes).await.unwrap()
+                    }
                 };
             });
         }
     });
 
-    let mut state = State::new(Config::config_dir())
+    let mut state = State::new(base_dir.clone())
         .await
         .expect("could not init state");
 
@@ -219,7 +235,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
         );
     }
 
-    let bind = format!("localhost:{}", cli.port.unwrap_or(Config::new().port));
+    let bind = format!("localhost:{}", cli.port.unwrap_or(config.port));
     server = server.bind(&bind)?;
     println!("> up and running at: http://{}", bind);
     println!("> also swagger ui is up at: http://{}/swagger-ui/", bind);
