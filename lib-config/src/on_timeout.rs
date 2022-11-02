@@ -9,24 +9,11 @@ pub struct OnTimeout {
 
 impl OnTimeout {
     #[inline]
-    #[cfg(target_os = "linux")]
-    fn default_play() -> Option<PathBuf> {
-        Some(PathBuf::from("/usr/share/oi/notification.wav"))
+    pub fn new() -> Self {
+        Self { play: None }
     }
 
-    #[inline]
-    #[cfg(not(target_os = "linux"))]
-    fn default_play() -> Option<PathBuf> {
-        // Default sound notification is disabled for non-linux platforms,
-        // because I do not know which path what would be a good
-        // alternative for `/usr/share/` for other platforms.
-        //
-        // Please, open the PR with correct `/usr/share/` alternative
-        // implementation for the platform of your choice. Thank you!
-        None
-    }
-
-    pub fn new(value: &Value) -> Self {
+    pub fn with(value: &Value) -> Self {
         match value.get("on-timeout") {
             Some(value) => match value {
                 Value::Mapping(on_timeout_map) => {
@@ -35,30 +22,14 @@ impl OnTimeout {
                             Value::String(play_string) => Self {
                                 play: Some(norm_path(&PathBuf::from(play_string))),
                             },
-                            Value::Null => Self { play: None },
-                            Value::Bool(should_play) => {
-                                if *should_play {
-                                    Self::default()
-                                } else {
-                                    Self { play: None }
-                                }
-                            }
-                            _ => Self::default(),
+                            _ => Self::new(),
                         },
-                        None => Self::default(),
+                        None => Self::new(),
                     }
                 }
-                _ => Self::default(),
+                _ => Self::new(),
             },
-            None => Self::default(),
-        }
-    }
-}
-
-impl Default for OnTimeout {
-    fn default() -> Self {
-        Self {
-            play: Self::default_play(),
+            None => Self::new(),
         }
     }
 }

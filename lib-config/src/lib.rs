@@ -79,7 +79,7 @@ impl Config {
                 let value: serde_yaml::Value = serde_yaml::from_reader(rd).unwrap();
 
                 Self {
-                    on_timeout: OnTimeout::new(&value),
+                    on_timeout: OnTimeout::with(&value),
                     volume: Self::parse_volume(&value),
                     port: Self::parse_port(&value),
                 }
@@ -93,7 +93,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             volume: Self::DEFAULT_VOLUME,
-            on_timeout: OnTimeout::default(),
+            on_timeout: OnTimeout::new(),
             port: Self::DEFAULT_PORT,
         }
     }
