@@ -1,8 +1,9 @@
 use super::norm_path;
+use serde::Serialize;
 use serde_yaml::Value;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OnTimeout {
     pub play: Option<PathBuf>,
 }

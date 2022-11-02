@@ -43,7 +43,7 @@ impl Cli {
     }
 
     async fn rm(&self, props: &RmProps) {
-        let config = Config::new();
+        let config = Config::new().unwrap();
         let bind = format!("http://localhost:{}", config.port);
         let client = Client::new(&bind);
 
@@ -75,7 +75,7 @@ impl Cli {
             format!("{}h {}m {}s", h, m, s)
         };
 
-        let config = Config::new();
+        let config = Config::new().unwrap();
         let bind = format!("http://localhost:{}", config.port);
         let client = Client::new(&bind);
 

@@ -165,9 +165,14 @@ async fn save(root: Option<PathBuf>, changes: &[u8]) -> anyhow::Result<()> {
 pub async fn app(cli: Cli) -> std::io::Result<()> {
     println!("starting up...");
     let latency = cli.latency as u64;
-    let config = Config::new();
+    let config = Config::new().unwrap();
     let base_dir = Config::config_dir();
     let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
+
+    println!(
+        "using this config:\n{}",
+        serde_yaml::to_string(&config).unwrap()
+    );
 
     spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -177,7 +182,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
                         OiTask {
                             timer,
                             latency,
-                            play_sound: Config::new().on_timeout.play,
+                            play_sound: Config::new().unwrap().on_timeout.play,
                         }
                         .run_timer()
                         .await;

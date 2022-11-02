@@ -1,4 +1,6 @@
+use anyhow::Result;
 use directories::ProjectDirs;
+use serde::Serialize;
 use serde_yaml::Value;
 use std::fs::File;
 use std::path::PathBuf;
@@ -9,7 +11,7 @@ use on_timeout::OnTimeout;
 mod norm_path;
 use norm_path::norm_path;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Config {
     pub port: u32,
     pub volume: f32,
@@ -28,31 +30,29 @@ impl Config {
         ProjectDirs::from("com", "oi", "oi").map(|dirs| dirs.config_dir().to_path_buf())
     }
 
+    #[inline]
     fn find_full_config_path() -> Option<PathBuf> {
-        match Self::config_dir() {
-            Some(dir) => {
-                let config_path = &["oi.yml", "oi.yaml"]
+        Self::config_dir()
+            .map(|dir| {
+                ["oi.yml", "oi.yaml"]
                     .iter()
                     .map(|filename| dir.join(filename))
-                    .find(|path| path.is_file());
-
-                match config_path {
-                    Some(config_path) => Some(config_path.clone()),
-                    None => None,
-                }
-            }
-            None => None,
-        }
+                    .find(|path| path.is_file())
+                    .clone()
+            })
+            .flatten()
     }
 
     fn parse_volume(value: &Value) -> f32 {
-        let num = value.get("volume").unwrap();
-        match num {
-            Value::Number(n) => match n.as_f64() {
-                Some(n) => n as f32,
-                None => Self::DEFAULT_VOLUME,
+        match value.get("volume") {
+            Some(num) => match num {
+                Value::Number(n) => match n.as_f64() {
+                    Some(n) => n as f32,
+                    None => Self::DEFAULT_VOLUME,
+                },
+                _ => Self::DEFAULT_VOLUME,
             },
-            _ => Self::DEFAULT_VOLUME,
+            None => Self::DEFAULT_VOLUME,
         }
     }
 
@@ -73,19 +73,19 @@ impl Config {
         }
     }
 
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         match Self::find_full_config_path() {
             Some(path) => {
-                let rd = File::open(path).unwrap();
-                let value: serde_yaml::Value = serde_yaml::from_reader(rd).unwrap();
+                let rd = File::open(path)?;
+                let root: serde_yaml::Value = serde_yaml::from_reader(rd)?;
 
-                Self {
-                    on_timeout: OnTimeout::with(&value),
-                    volume: Self::parse_volume(&value),
-                    port: Self::parse_port(&value),
-                }
+                Ok(Self {
+                    on_timeout: OnTimeout::with(&root),
+                    volume: Self::parse_volume(&root),
+                    port: Self::parse_port(&root),
+                })
             }
-            None => Self::default(),
+            None => Ok(Self::default()),
         }
     }
 }
