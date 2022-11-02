@@ -20,17 +20,18 @@ impl Config {
     const DEFAULT_VOLUME: f32 = 0.8;
     const DEFAULT_PORT: u32 = 9191;
 
+    /// Attempts to compute the base config dir for the user,
+    /// considering different alternatives for ~/.config accross
+    /// different OS
+    #[inline]
     pub fn config_dir() -> Option<PathBuf> {
-        match ProjectDirs::from("com", "oi", "oi") {
-            Some(dirs) => Some(dirs.config_dir().to_path_buf()),
-            None => None,
-        }
+        ProjectDirs::from("com", "oi", "oi").map(|dirs| dirs.config_dir().to_path_buf())
     }
 
-    fn full_config_path() -> Option<PathBuf> {
+    fn find_full_config_path() -> Option<PathBuf> {
         match Self::config_dir() {
             Some(dir) => {
-                let config_path = &["oi.yml", "oi.yaml", "oirc", ".oirc"]
+                let config_path = &["oi.yml", "oi.yaml"]
                     .iter()
                     .map(|filename| dir.join(filename))
                     .find(|path| path.is_file());
@@ -73,7 +74,7 @@ impl Config {
     }
 
     pub fn new() -> Self {
-        match Self::full_config_path() {
+        match Self::find_full_config_path() {
             Some(path) => {
                 let rd = File::open(path).unwrap();
                 let value: serde_yaml::Value = serde_yaml::from_reader(rd).unwrap();
