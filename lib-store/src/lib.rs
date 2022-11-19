@@ -120,9 +120,17 @@ impl<'store> TimersStore<'store> {
     pub fn delete_active(&mut self) -> Result<bool> {
         let active = self.find_active(None)?;
 
-        for timer in active {
-            self.delete_by_uuid(&timer.uuid)?;
-        }
+        self.state
+            .0
+            .transact::<_, _, AutomergeError>(|tx| {
+                let (_, timers) = tx.get(ROOT, "timers")?.unwrap();
+                for timer in active {
+                    tx.delete(&timers, timer.uuid.to_string())?;
+                }
+                Ok(())
+            })
+            .unwrap()
+            .result;
 
         Ok(true)
     }
