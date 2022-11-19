@@ -1,108 +1,56 @@
+use anyhow::Result;
 use chrono::Utc;
+use clap::{Parser, Subcommand};
 use lib_api::Client;
 use lib_config::Config;
 use lib_store::TimerInput;
 use notify_rust::Notification;
 use runic::Runic;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-pub struct RunProps {
-    pub timer: String,
+use crate::commands;
 
-    #[structopt(long)]
-    pub json: bool,
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Start the timer with given input
+    Run {
+        #[arg(value_name = "timer")]
+        timer: String,
+
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Delete the timer by uuid
+    Rm {
+        #[arg(value_name = "uuid")]
+        timer_uuid: uuid::Uuid,
+    },
 }
 
-#[derive(Debug, StructOpt)]
-pub struct RmProps {
-    pub timer_uuid: uuid::Uuid,
-}
-
-#[derive(Debug, StructOpt)]
-#[structopt(rename_all = "kebab-case")]
-pub enum Cli {
-    #[structopt(about = "Start the timer")]
-    Run(RunProps),
-
-    #[structopt(about = "Delete the timer")]
-    Rm(RmProps),
+#[derive(Debug, Parser)]
+#[command(author, version, about)]
+pub struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
 impl Cli {
-    #[inline]
-    pub async fn exec(&self) {
-        match self {
-            Cli::Run(props) => {
-                self.run(props).await;
-            }
-            Cli::Rm(props) => {
-                self.rm(props).await;
-            }
-        };
-    }
-
-    async fn rm(&self, props: &RmProps) {
-        let config = Config::new().unwrap();
-        let bind = format!("http://localhost:{}", config.port);
-        let client = Client::new(&bind);
-
-        match client.timers.delete_by_uuid(&props.timer_uuid).await {
-            Ok(_) => {
-                Notification::new()
-                    .summary("timer was deleted")
-                    .body(&props.timer_uuid.to_string())
-                    .timeout(2_500)
-                    .show()
-                    .unwrap();
-            }
-            Err(e) => {
-                eprintln!("Could not connect to a server");
-                eprintln!("{}", e);
-            }
-        }
-    }
-
-    async fn run(&self, props: &RunProps) {
-        let now = Utc::now();
-        let input = &props.timer;
-        let mut runic = Runic::new(input);
-        runic.timestamp(now.timestamp());
-        let duration = runic.describe().unwrap();
-
-        let body = {
-            let (h, m, s) = runic::hms(duration);
-            format!("{}h {}m {}s", h, m, s)
-        };
-
-        let config = Config::new().unwrap();
-        let bind = format!("http://localhost:{}", config.port);
-        let client = Client::new(&bind);
-
-        match client
-            .timers
-            .create(&TimerInput {
-                start: now.timestamp_millis() as _,
-                duration: (duration as u64) * 1_000,
-                message: input.to_owned(),
-            })
-            .await
-        {
-            Ok(timer) => {
-                Notification::new()
-                    .summary("timer is now running")
-                    .body(&body)
-                    .timeout(2_500)
-                    .show()
-                    .unwrap();
-
-                if props.json {
-                    println!("{}", serde_json::to_string_pretty(&timer).unwrap());
+    pub async fn exec(self) -> Result<()> {
+        match self.command {
+            Commands::Run { timer, json } => {
+                commands::run::RunCommand {
+                    timer: &timer,
+                    json,
                 }
+                .exec()
+                .await
             }
-            Err(e) => {
-                eprintln!("{}", bind);
-                eprintln!("{}", e);
+            Commands::Rm { timer_uuid } => {
+                commands::rm::RmCommand {
+                    timer_id: timer_uuid,
+                }
+                .exec()
+                .await
             }
         }
     }

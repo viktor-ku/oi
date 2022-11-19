@@ -1,10 +1,12 @@
-use structopt::StructOpt;
+use clap::Parser;
 
 mod cli;
 use cli::Cli;
 
+mod commands;
+
 #[tokio::main]
 async fn main() {
-    let cli = Cli::from_args();
-    cli.exec().await;
+    let cli = Cli::parse();
+    cli.exec().await.unwrap();
 }
