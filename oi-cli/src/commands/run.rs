@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::Utc;
+use chrono::{Duration, Local, Utc};
 use lib_api::Client;
 use lib_config::Config;
 use lib_store::TimerInput;
@@ -32,7 +32,7 @@ impl<'c> RunCommand<'c> {
             .timers
             .create(&TimerInput {
                 start: now.timestamp_millis() as _,
-                duration: (duration as u64) * 1_000,
+                duration: duration as u64 * 1_000,
                 message: input.to_owned(),
             })
             .await
@@ -47,12 +47,18 @@ impl<'c> RunCommand<'c> {
 
                 if self.json {
                     println!("{}", serde_json::to_string_pretty(&timer).unwrap());
+                } else {
+                    let until = Local::now()
+                        .checked_add_signed(Duration::seconds(duration as _))
+                        .unwrap();
+                    println!("timer started for:");
+                    println!("\t{}", body);
+                    println!("\tuntil: {}", until);
                 }
+
                 Ok(())
             }
-            Err(e) => {
-                Err(e.into())
-            }
+            Err(e) => Err(e.into()),
         }
     }
 }

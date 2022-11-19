@@ -1,11 +1,5 @@
 use anyhow::Result;
-use chrono::Utc;
 use clap::{Parser, Subcommand};
-use lib_api::Client;
-use lib_config::Config;
-use lib_store::TimerInput;
-use notify_rust::Notification;
-use runic::Runic;
 
 use crate::commands;
 
