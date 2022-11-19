@@ -117,6 +117,16 @@ impl<'store> TimersStore<'store> {
         Ok(true)
     }
 
+    pub fn delete_active(&mut self) -> Result<bool> {
+        let active = self.find_active(None)?;
+
+        for timer in active {
+            self.delete_by_uuid(&timer.uuid)?;
+        }
+
+        Ok(true)
+    }
+
     pub fn create(&mut self, payload: TimerInput) -> Result<Timer> {
         let uuid = Uuid::new_v4();
 

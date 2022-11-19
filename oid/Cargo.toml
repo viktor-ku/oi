@@ -16,6 +16,7 @@ lib-player = { path = "../lib-player" }
 lib-store = { path = "../lib-store" }
 lib-config = { path = "../lib-config" }
 serde_yaml = "~0.9"
+env_logger = "~0.9"
 
 [dependencies.utoipa]
 version = "2.2"

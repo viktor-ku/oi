@@ -49,6 +49,31 @@ pub async fn find_by_uuid(
 
 #[utoipa::path(
     responses(
+        (status = 200, description = "Timers deleted successfully"),
+    ),
+)]
+#[delete("/timers/active")]
+pub async fn delete_active(
+    state: web::Data<Mutex<State>>,
+    tx: web::Data<Mutex<mpsc::Sender<OidMessage>>>,
+) -> impl Responder {
+    let saved = {
+        let mut state = state.try_lock().unwrap();
+        let mut store = TimersStore::new(&mut state);
+        store.delete_active().unwrap();
+        state.0.save_incremental()
+    };
+
+    {
+        let tx = tx.try_lock().unwrap();
+        tx.send(OidMessage::Save(saved)).await.unwrap();
+    };
+
+    HttpResponse::Ok()
+}
+
+#[utoipa::path(
+    responses(
         (status = 200, description = "Timer deleted successfully"),
     ),
     params(
@@ -59,10 +84,20 @@ pub async fn find_by_uuid(
 pub async fn delete_by_uuid(
     state: web::Data<Mutex<State>>,
     timer_id: web::Path<uuid::Uuid>,
+    tx: web::Data<Mutex<mpsc::Sender<OidMessage>>>,
 ) -> impl Responder {
-    let mut state = state.try_lock().unwrap();
-    let mut store = TimersStore::new(&mut state);
-    store.delete_by_uuid(&timer_id).unwrap();
+    let saved = {
+        let mut state = state.try_lock().unwrap();
+        let mut store = TimersStore::new(&mut state);
+        store.delete_by_uuid(&timer_id).unwrap();
+        state.0.save_incremental()
+    };
+
+    {
+        let tx = tx.try_lock().unwrap();
+        tx.send(OidMessage::Save(saved)).await.unwrap();
+    };
+
     HttpResponse::Ok()
 }
 
@@ -169,6 +204,8 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     let base_dir = Config::config_dir();
     let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
 
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
     println!(
         "using this config:\n{}",
         serde_yaml::to_string(&config).unwrap()
@@ -220,6 +257,7 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
             .service(create_timer)
             .service(home)
             .service(find_all_timers)
+            .service(delete_active)
             .service(delete_by_uuid)
             .service(find_active_timers)
             .service(find_by_uuid)

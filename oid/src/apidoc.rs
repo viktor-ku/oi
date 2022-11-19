@@ -8,6 +8,7 @@ use utoipa::OpenApi;
         create_timer,
         find_all_timers,
         delete_by_uuid,
+        delete_active,
         find_active_timers,
         find_by_uuid
     ),

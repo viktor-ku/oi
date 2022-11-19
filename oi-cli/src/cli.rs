@@ -1,7 +1,6 @@
+use crate::commands;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-
-use crate::commands;
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
@@ -14,11 +13,14 @@ pub enum Commands {
         json: bool,
     },
 
-    /// Delete the timer by uuid
+    /// Delete a timer by its id (uuid)
     Rm {
         #[arg(value_name = "uuid")]
         timer_uuid: uuid::Uuid,
     },
+
+    /// Delete all active timers
+    Clean {},
 }
 
 #[derive(Debug, Parser)]
@@ -46,6 +48,7 @@ impl Cli {
                 .exec()
                 .await
             }
+            Commands::Clean {} => commands::clean::CleanCommand {}.exec().await,
         }
     }
 }

@@ -56,6 +56,15 @@ impl<'resource> TimersResource<'resource> {
         Ok(())
     }
 
+    pub async fn delete_active(&self) -> Result<()> {
+        self.client
+            .delete(&format!("{}/timers/active", self.url))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn create(&self, body: &TimerInput) -> Result<Timer> {
         let res = self
             .client
