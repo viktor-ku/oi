@@ -3,9 +3,6 @@ use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
-    #[arg(long, default_value = "default")]
-    pub sandbox: String,
-
     /// Detach the daemon from the terminal
     #[arg(long, short)]
     pub detach: bool,
