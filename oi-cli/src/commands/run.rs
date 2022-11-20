@@ -9,6 +9,7 @@ use runic::Runic;
 pub struct RunCommand<'c> {
     pub timer: &'c str,
     pub json: bool,
+    pub silent: bool,
 }
 
 impl<'c> RunCommand<'c> {
@@ -45,15 +46,17 @@ impl<'c> RunCommand<'c> {
                     .show()
                     .unwrap();
 
-                if self.json {
-                    println!("{}", serde_json::to_string_pretty(&timer).unwrap());
-                } else {
-                    let until = Local::now()
-                        .checked_add_signed(Duration::seconds(duration as _))
-                        .unwrap();
-                    println!("timer started for:");
-                    println!("\t{}", body);
-                    println!("\tuntil: {}", until);
+                if !self.silent {
+                    if self.json {
+                        println!("{}", serde_json::to_string_pretty(&timer).unwrap());
+                    } else {
+                        let until = Local::now()
+                            .checked_add_signed(Duration::seconds(duration as _))
+                            .unwrap();
+                        println!("timer started for:");
+                        println!("\t{}", body);
+                        println!("\tuntil: {}", until);
+                    }
                 }
 
                 Ok(())

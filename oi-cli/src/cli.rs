@@ -6,11 +6,14 @@ use clap::{Parser, Subcommand};
 pub enum Commands {
     /// Start the timer with given input
     Run {
-        #[arg(value_name = "timer")]
         timer: String,
 
         #[arg(long)]
         json: bool,
+
+        /// Do not print anything in the stdout
+        #[arg(short, long)]
+        silent: bool,
     },
 
     /// Delete a timer by its id (uuid)
@@ -33,10 +36,15 @@ pub struct Cli {
 impl Cli {
     pub async fn exec(self) -> Result<()> {
         match self.command {
-            Commands::Run { timer, json } => {
+            Commands::Run {
+                timer,
+                json,
+                silent,
+            } => {
                 commands::run::RunCommand {
                     timer: &timer,
                     json,
+                    silent,
                 }
                 .exec()
                 .await
