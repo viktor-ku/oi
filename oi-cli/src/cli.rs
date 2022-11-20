@@ -4,22 +4,28 @@ use clap::{Parser, Subcommand};
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Start the timer with given input
+    /// Create and launch a timer
     Run {
+        /// Any valid input according to the runic
+        ///
+        /// Example: "I have meeting at 4pm utc-2 +10m"
+        ///
+        /// Docs: https://github.com/viktor-ku/runic
         timer: String,
 
+        /// Print json into the stdout describing the timer
         #[arg(long)]
         json: bool,
 
-        /// Do not print anything in the stdout
+        /// Do not print anything in the stdout, overriding --json argument if provided
         #[arg(short, long)]
         silent: bool,
     },
 
-    /// Delete a timer by its id (uuid)
+    /// Delete the timer by id
     Rm {
-        #[arg(value_name = "uuid")]
-        timer_uuid: uuid::Uuid,
+        /// Timer id (uuid)
+        id: uuid::Uuid,
     },
 
     /// Delete all active timers
@@ -49,13 +55,7 @@ impl Cli {
                 .exec()
                 .await
             }
-            Commands::Rm { timer_uuid } => {
-                commands::rm::RmCommand {
-                    timer_id: timer_uuid,
-                }
-                .exec()
-                .await
-            }
+            Commands::Rm { id } => commands::rm::RmCommand { timer_id: id }.exec().await,
             Commands::Clean {} => commands::clean::CleanCommand {}.exec().await,
         }
     }
