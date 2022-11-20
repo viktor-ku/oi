@@ -1,3 +1,5 @@
+#![cfg(debug_assertions)]
+
 use super::Cli;
 use std::env::args;
 use std::fs;

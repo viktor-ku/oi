@@ -1,14 +1,22 @@
 use clap::Parser;
+
+#[cfg(debug_assertions)]
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
-    /// Detach the daemon from the terminal
+    /// Set to detach the daemon
+    ///
+    /// Debug mode only. Use with something like disown in release mode.
+    #[cfg(debug_assertions)]
     #[arg(long, short)]
     pub detach: bool,
 
     /// Save the pid (process id) of the detached process (child)
     /// to the specified file
+    ///
+    /// Debug mode only.
+    #[cfg(debug_assertions)]
     #[arg(long)]
     pub pid: Option<PathBuf>,
 

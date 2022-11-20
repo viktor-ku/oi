@@ -21,9 +21,10 @@ async fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
+    #[cfg(debug_assertions)]
     if cli.detach {
-        detach::detach(&cli)
-    } else {
-        app::app(cli).await
+        return detach::detach(&cli);
     }
+
+    app::app(cli).await
 }
