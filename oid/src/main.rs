@@ -1,5 +1,5 @@
 use apidoc::ApiDoc;
-use structopt::StructOpt;
+use clap::Parser;
 
 mod cli;
 use cli::Cli;
@@ -13,7 +13,7 @@ pub mod app;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let cli = Cli::from_args();
+    let cli = Cli::parse();
 
     if cli.generate_openapi {
         let spec = ApiDoc::openapi().to_pretty_json().unwrap();

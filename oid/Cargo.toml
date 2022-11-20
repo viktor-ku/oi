@@ -8,7 +8,6 @@ edition = "2018"
 actix-web = "4.2"
 tokio = { version = "1.17", features = ["rt-multi-thread", "sync", "time"] }
 notify-rust = "4"
-structopt = "0.3"
 uuid = { version = "1.2", features = ["serde", "v4"] }
 anyhow = "1.0"
 utoipa-swagger-ui = { version = "2.0", features = ["actix-web"] }
@@ -17,8 +16,8 @@ lib-store = { path = "../lib-store" }
 lib-config = { path = "../lib-config" }
 serde_yaml = "~0.9"
 env_logger = "~0.9"
+clap = { version = "~4.0", features = ["derive"] }
 
 [dependencies.utoipa]
 version = "2.2"
 features = ["json", "actix_extras", "debug", "uuid", "openapi_extensions"]
-
