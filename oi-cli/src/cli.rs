@@ -20,6 +20,17 @@ pub enum Commands {
         /// Do not print anything in the stdout, overriding --json argument if provided
         #[arg(short, long)]
         silent: bool,
+
+        /// By default the client will try to send the timer request
+        /// to the server, or run local timer if server is not responding
+        ///
+        /// However, you can choose to not even try to send the request to the
+        /// server, for example in case you know there is no server in the first place
+        ///
+        /// In local mode it runs the timer and that's it, no data about the
+        /// timer is stored anywhere on your device
+        #[arg(short, long)]
+        local: bool,
     },
 
     /// Delete the timer by id
@@ -46,11 +57,13 @@ impl Cli {
                 timer,
                 json,
                 silent,
+                local,
             } => {
                 commands::run::RunCommand {
                     timer: &timer,
                     json,
                     silent,
+                    local,
                 }
                 .exec()
                 .await

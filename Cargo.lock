@@ -1691,6 +1691,7 @@ dependencies = [
  "clap",
  "lib-api",
  "lib-config",
+ "lib-player",
  "lib-store",
  "notify-rust",
  "runic",
