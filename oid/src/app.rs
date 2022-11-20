@@ -204,7 +204,9 @@ pub async fn app(cli: Cli) -> std::io::Result<()> {
     let base_dir = Config::config_dir();
     let (tx, mut rx) = mpsc::channel::<OidMessage>(32);
 
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    if cfg!(debug_assertions) {
+        env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    }
 
     println!(
         "using this config:\n{}",
