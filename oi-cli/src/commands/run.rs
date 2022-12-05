@@ -108,9 +108,11 @@ impl<'c> RunCommand<'c> {
             }
             Err(e) => {
                 if e.is_connect() || e.is_status() {
-                    eprintln!(
-                        "could not send timer request to the server, launching local timer..."
-                    );
+                    if !self.silent {
+                        eprintln!(
+                            "could not send timer request to the server, launching local timer..."
+                        );
+                    }
                     self.run_local_timer(config, duration).await
                 } else {
                     Err(e.into())
