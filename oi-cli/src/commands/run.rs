@@ -22,6 +22,14 @@ impl<'c> RunCommand<'c> {
 
         self.print_human_report(duration, &body);
 
+        Notification::new()
+            .summary("oi")
+            .body(&body)
+            .timeout(5_000)
+            .urgency(Urgency::Normal)
+            .show()
+            .unwrap();
+
         time::sleep(Duration::from_secs(duration)).await;
 
         Notification::new()
